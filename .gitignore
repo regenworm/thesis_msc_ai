@@ -139,4 +139,4 @@ cython_debug/
 
 **/data/**
 literature/**
-data
+.DS_Store
