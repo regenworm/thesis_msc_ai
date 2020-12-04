@@ -1,50 +1,59 @@
+from n2v import train_node_embeddings, train_edge_embeddings
+from classifier import classify
 import data_util as du
-from node2vec import Node2Vec
-from node2vec.edges import HadamardEmbedder
+import matplotlib.pyplot as plt
 
 
-def train_node_embeddings(graph, fname_model=None):
-    # Precompute probabilities and generate walks - **ON WINDOWS ONLY WORKS WITH workers=1**
-    node2vec = Node2Vec(graph, dimensions=10, walk_length=30, num_walks=200, workers=4)  # Use temp_folder for big graphs
+def gen_dataset(N, embed_dim, m=2):
+    new_data = du.simulate_data(N, m)
 
-    # Embed nodes
-    model = node2vec.fit(window=10, min_count=1, batch_words=4)
-    # Save model for later use
-    if not fname_model is None:
-        model.save(fname_model)
-    return model
+    new_emb_model = train_node_embeddings(new_data, embed_dim)
+    new_edge_embeddings = train_edge_embeddings(new_data, new_emb_model)
 
-# def node_embeddings(graph, model, fname_node_embs=None):
-#     # # Look for most similar nodes
-#     # model.wv.most_similar('2')  # Output node names are always strings
-
-#     # Save embeddings for later use
-#     if not fname_node_embs is None:
-#         model.wv.save_word2vec_format(fname_node_embs)
-
-#     return model.wv
+    new_ee_kv = new_edge_embeddings.as_keyed_vectors()
+    labels = du.construct_embedding_labels(new_data, new_ee_kv)
+    tdata = {'data': new_data, 'features': new_ee_kv.vectors, 'labels': labels}
+    return tdata
 
 
-def train_edge_embeddings(graph, model, fname_edge_embs=None):# Embed edges using Hadamard method
-    edges_embs = HadamardEmbedder(keyed_vectors=model.wv)
+def get_edge_embeddings(data, embed_dim, emb_name='l2'):
+    """
+    input data, return node features, edge features,
+    """
+    emb_model = train_node_embeddings(data, embed_dim)
+    edge_embeddings = train_edge_embeddings(data, emb_model, emb_name=emb_name)
+    ee_kv = edge_embeddings.as_keyed_vectors()
 
-    # Get all edges in a separate KeyedVectors instance - use with caution could be huge for big networks
-    edges_kv = edges_embs.as_keyed_vectors()
+    return emb_model.wv.vectors, ee_kv.vectors, ee_kv
 
-    # Save embeddings for later use
-    if not fname_edge_embs is None:
-        edges_kv.save_word2vec_format(fname_edge_embs)
-
-    return edges_kv
 
 if __name__ == "__main__":
-    EMBEDDING_FILENAME = 'sim.emb'
-    EMBEDDING_MODEL_FILENAME = 'sim_model.mdl'
-    graph = du.simulate_data(100, 50)
-    du.vis_graph(graph)
+    num_nodes = 50
+    embed_dim = 10
+    show_vis = False
 
-    model = train_node_embeddings(graph)
-    edge_embeddings = train_edge_embeddings(graph, model)
 
-    du.vis_embeddings(edge_embeddings)
+    # Generate data
+    data = du.simulate_data(num_nodes, 2)
+    num_edges = len(data.edges)
+    if show_vis:
+        v = du.vis_graph(data)
+        plt.show(v)
+    print(f'The data contains {num_nodes} nodes, and {num_edges} edges')
+
+    # train model
+    nodes, edges, ee_kv = get_edge_embeddings(data, embed_dim)
+    edge_labels = du.construct_embedding_labels(data, ee_kv)
+    print(f'The network node data is now embedded into {embed_dim} dimensions')
+
+    # visualise features
+    if show_vis:
+        fignodes = du.vis_embeddings(nodes)
+        plt.show(fignodes)
+        figedges = du.vis_edge_embeddings(data, edges, edge_labels)
+        plt.show(figedges)
+
+    # classify features
+    clf = classify(edges, edge_labels)
+    print(clf.score(edges, edge_labels))
 
