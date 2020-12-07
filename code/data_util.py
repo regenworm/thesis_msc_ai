@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 import networkx as nx
+import gensim as gs
 from sklearn.manifold import TSNE
 import numpy as np
 import re
@@ -29,6 +30,12 @@ def simulate_data(n, m):
     graph = nx.barabasi_albert_graph(n, m)
     return graph
 
+def load_edge_list(fname):
+    return nx.read_edgelist(fname)
+
+
+def read_embedding(fname):
+    return gs.models.KeyedVectors.load_word2vec_format(fname)
 
 def vis_graph(graph, set_labels=True, options=graph_vis_options):
     """

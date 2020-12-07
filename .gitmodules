@@ -1,0 +1,3 @@
+[submodule "code/struc2vec"]
+	path = code/struc2vec
+	url = https://github.com/regenworm/struc2vec

@@ -32,28 +32,28 @@ if __name__ == "__main__":
     embed_dim = 10
     show_vis = False
 
+    # simdata pipeline
+    # # Load data
+    # data = du.simulate_data(num_nodes, 2)
+    # num_edges = len(data.edges)
+    # if show_vis:
+    #     v = du.vis_graph(data)
+    #     plt.show(v)
+    # print(f'The data contains {num_nodes} nodes, and {num_edges} edges')
 
-    # Generate data
-    data = du.simulate_data(num_nodes, 2)
-    num_edges = len(data.edges)
-    if show_vis:
-        v = du.vis_graph(data)
-        plt.show(v)
-    print(f'The data contains {num_nodes} nodes, and {num_edges} edges')
+    # # train model
+    # nodes, edges, ee_kv = get_edge_embeddings(data, embed_dim)
+    # edge_labels = du.construct_embedding_labels(data, ee_kv)
+    # print(f'The network node data is now embedded into {embed_dim} dimensions')
 
-    # train model
-    nodes, edges, ee_kv = get_edge_embeddings(data, embed_dim)
-    edge_labels = du.construct_embedding_labels(data, ee_kv)
-    print(f'The network node data is now embedded into {embed_dim} dimensions')
+    # # visualise features
+    # if show_vis:
+    #     fignodes = du.vis_embeddings(nodes)
+    #     plt.show(fignodes)
+    #     figedges = du.vis_edge_embeddings(data, edges, edge_labels)
+    #     plt.show(figedges)
 
-    # visualise features
-    if show_vis:
-        fignodes = du.vis_embeddings(nodes)
-        plt.show(fignodes)
-        figedges = du.vis_edge_embeddings(data, edges, edge_labels)
-        plt.show(figedges)
-
-    # classify features
-    clf = classify(edges, edge_labels)
-    print(clf.score(edges, edge_labels))
+    # # classify features
+    # clf = classify(edges, edge_labels)
+    # print(clf.score(edges, edge_labels))
 
