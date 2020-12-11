@@ -30,12 +30,14 @@ def simulate_data(n, m):
     graph = nx.barabasi_albert_graph(n, m)
     return graph
 
-def load_edge_list(fname):
+
+def load_edge_list(fname='data/tissue_int.edgelist'):
     return nx.read_edgelist(fname)
 
 
 def read_embedding(fname):
     return gs.models.KeyedVectors.load_word2vec_format(fname)
+
 
 def vis_graph(graph, set_labels=True, options=graph_vis_options):
     """
