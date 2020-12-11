@@ -140,3 +140,5 @@ cython_debug/
 **/data/**
 literature/**
 .DS_Store
+emb
+random_walks.txt
