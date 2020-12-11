@@ -1,58 +1,11 @@
-# models
-from node2vec import Node2Vec
-import node2vec.edges as ee
-
-# load model from file
+import struc2vec as s2v
 from gensim.models import KeyedVectors
-
-# classifier
+from n2v import train_edge_embeddings
+import data_util as du
 from classifier import classify
 
-# utility
-import data_util as du
 
-
-def train_node_embeddings(graph, embedding_dim, fname_model=None):
-    node2vec = Node2Vec(graph, dimensions=embedding_dim,
-                        walk_length=100, num_walks=50, workers=4)
-
-    # Embed nodes
-    emb_model = node2vec.fit(window=10, min_count=1, batch_words=4)
-    # Save model for later use
-    if fname_model is not None:
-        emb_model.save(fname_model)
-    return emb_model
-
-
-def train_edge_embeddings(emb_model, emb_name='l2', fname_edge_embs=None):
-    if emb_name == 'average':
-        edges_embs = ee.AverageEmbedder(keyed_vectors=emb_model.wv)
-    elif emb_name == 'hadamard':
-        edges_embs = ee.HadamardEmbedder(keyed_vectors=emb_model.wv)
-    elif emb_name == 'l1':
-        edges_embs = ee.WeightedL1Embedder(keyed_vectors=emb_model.wv)
-    else:
-        edges_embs = ee.WeightedL2Embedder(keyed_vectors=emb_model.wv)
-
-    # Save embeddings for later use
-    if fname_edge_embs is not None:
-        edges_embs.as_keyed_vectors().save_word2vec_format(fname_edge_embs)
-
-    return edges_embs
-
-
-def get_edge_embeddings(data, embed_dim, emb_name='l2'):
-    """
-    input data, return node features, edge features,
-    """
-    emb_model = train_node_embeddings(data, embed_dim)
-    edge_embeddings = train_edge_embeddings(emb_model, emb_name=emb_name)
-    ee_kv = edge_embeddings.as_keyed_vectors()
-
-    return emb_model.wv.vectors, ee_kv.vectors, ee_kv
-
-
-class N2VModel ():
+class S2VModel():
     def __init__(self, embed_dim=2, emb_name='l2', c_idx=0, model_fname=None):
         """
         @embed_dim: integer, dimensionality of generated embeddings
@@ -87,9 +40,15 @@ class N2VModel ():
         """
         @data: networkx graph
         """
+        # set arguments
+        p = s2v.parse_args()
+        args = p.parse_args(['--dimensions', str(self.embed_dim)])
+        G = s2v.fnx(data)
+
         # generate embeddings
         # node model
-        model = train_node_embeddings(data, self.embed_dim)
+        s2v.exec_struc2vec(args, G=G)
+        model = s2v.learn_embeddings(args)
         self.nodes = model.wv.vectors
 
         # edge model
@@ -121,3 +80,9 @@ class N2VModel ():
         """
         edge_labels = du.construct_embedding_labels(data, self.ee_kv)
         return self.clf.score(self.edges, edge_labels)
+
+
+
+# if __name__ == "__main__":
+#     sv = S2VModel()
+#     wv = sv.fit('data/tissue_int.edgelist')
