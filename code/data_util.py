@@ -95,13 +95,16 @@ def vis_labeled_embeddings(data, labels, color_list, options={}):
     return fig
 
 
+def edge_str2tuple(idx):
+    tuple_idx = re.sub('[^a-zA-Z\d\s:]', '', idx).split(' ')
+    return tuple_idx[0], tuple_idx[1]
+
+
 def construct_embedding_labels(graph, edge_embedding_kv):
-    edge_list = list(graph.edges)
     labels = []
-    for k, _ in edge_embedding_kv.vocab.items():
-        sk = re.sub('[^a-zA-Z\d\s:]', '', k).split(' ')
-        sk, skr = (int(sk[0]), int(sk[1])), (int(sk[1]), int(sk[0]))
-        if (sk in edge_list) or (skr in edge_list):
+    for edge_idx in edge_embedding_kv.vocab:
+        u, v = edge_str2tuple(edge_idx)
+        if graph.has_edge(u, v):
             labels.append(1)
         else:
             labels.append(0)
