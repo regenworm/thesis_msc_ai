@@ -101,7 +101,7 @@ class S2VModel():
         keys = self.nodes.vocab.keys()
         # negative samples
         for i in range(n_data_edges):
-            edge, r_edge = du.sample_edge_idx(keys)
+            edge, r_edge = du.sample_edge_idx(data.nodes)
 
             feat_vec = self.get_embedding(edge, keys)
             if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):

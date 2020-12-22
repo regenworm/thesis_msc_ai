@@ -4,7 +4,6 @@ from s2v import S2VModel
 
 # utility
 import argparse
-import numpy as np
 import matplotlib.pyplot as plt
 import data_util as du
 
@@ -48,7 +47,6 @@ def run(args):
 
     # classify
     print(f'== TESTING MODEL  ==')
-    # predictions = model.predict(data)
     score = model.score(data)
     print(f'Score for {args.model_type}: {score}')
 

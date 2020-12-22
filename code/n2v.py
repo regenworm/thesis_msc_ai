@@ -139,8 +139,7 @@ class N2VModel ():
 
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
-        keys = self.ee_kv.vocab.keys()
-
+        keys = self.nodes.vocab.keys()
         # negative samples
         for i in range(n_data_edges):
             edge, r_edge = du.sample_edge_idx(data.nodes)

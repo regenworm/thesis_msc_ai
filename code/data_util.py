@@ -6,6 +6,7 @@ from sklearn.manifold import TSNE
 import numpy as np
 import re
 from sklearn.metrics import plot_precision_recall_curve
+from copy import deepcopy
 
 # some theme compatability issues
 pal = sns.color_palette('Set2')
@@ -131,11 +132,12 @@ def sample_edge_idx(nodes):
     n = np.random.choice(range(len(nodes)-1), 2)
     return f"('{n[0]}', '{n[1]}')", f"('{n[1]}', '{n[0]}')"
 
+
 def add_noise(data, n_remove=50, n_add=50):
     """
     @data: networkx graph
     """
-    new_data = data.copy()
+    new_data = deepcopy(data)
 
     # missing edges
     edges = np.array(data.edges)
@@ -146,15 +148,12 @@ def add_noise(data, n_remove=50, n_add=50):
     nodes = np.array(data.nodes)
     a_idx = np.random.choice(range(len(nodes)-1), n_add * 2)
     s_edge = nodes[a_idx]
-
     for i in range(0, len(a_idx), 2):
         new_data.add_edge(s_edge[i], s_edge[i+1])
 
     # ensure connected
-    isolates = list(nx.isolates(new_data))
-    a_idx = np.random.choice(range(len(nodes)-1), len(isolates))
-    for n1, n2 in zip(isolates, a_idx):
-        new_data.add_edge(n1, n2)
+    edges = list(nx.k_edge_augmentation(new_data, 1))
+    new_data.add_edges_from(edges)
 
     return new_data
 
