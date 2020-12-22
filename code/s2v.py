@@ -1,4 +1,4 @@
-import struc2vec as s2v
+import models.struc2vec as s2v
 from gensim.models import KeyedVectors
 from n2v import train_edge_embeddings
 import data_util as du
@@ -6,7 +6,7 @@ from classifier import classify
 
 
 class S2VModel():
-    def __init__(self, embed_dim=2, emb_name='l2', c_idx=0, model_fname=None):
+    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None):
         """
         @embed_dim: integer, dimensionality of generated embeddings
         @c_idx: integer, determines which classifier from scikit to use

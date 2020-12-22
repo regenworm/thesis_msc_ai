@@ -9,28 +9,6 @@ import matplotlib.pyplot as plt
 import data_util as du
 
 
-def add_noise(data, n_remove=5, n_add=5):
-    """
-    @data: networkx graph
-    """
-    new_data = data.copy()
-
-    # missing edges
-    edges = np.array(data.edges)
-    r_idx = np.random.choice(range(len(edges)), n_remove)
-    new_data.remove_edges_from(edges[r_idx])
-
-    # spurious edges
-    nodes = np.array(data.nodes)
-    a_idx = np.random.choice(range(len(nodes)), n_add * 2)
-    s_edge = nodes[a_idx]
-
-    for i in range(0, len(a_idx), 2):
-        new_data.add_edge(s_edge[i], s_edge[i+1])
-
-    return new_data
-
-
 def train_model(data, model_type, embed_dim, model_fname):
     if model_type == 'n2v':
         nv_emb = N2VModel(embed_dim=embed_dim,
@@ -52,11 +30,16 @@ def run(args):
     # load data
     print(f'== LOADING DATA FROM {args.input} ==')
     data = du.load_edge_list(args.input)
+    v = du.vis_graph(data)
+    plt.savefig('plots/data.png')
     if args.show_vis:
-        v = du.vis_graph(data)
         plt.show(v)
 
-    train_data = add_noise(data)
+    train_data = du.add_noise(data)
+    v = du.vis_graph(train_data)
+    plt.savefig('plots/train_data.png')
+    if args.show_vis:
+        plt.show(v)
 
     # train model
     print(f'== TRAINING {args.model_type} MODEL  ==')
@@ -65,6 +48,8 @@ def run(args):
 
     # classify
     print(f'== TESTING MODEL  ==')
+    predictions = model.predict(data)
+    print(predictions)
     score = model.score(data)
     print(f'Score for {args.model_type}: {score}')
 

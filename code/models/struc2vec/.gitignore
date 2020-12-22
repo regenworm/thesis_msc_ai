@@ -1,0 +1,10 @@
+*.pyc
+*.pickle
+*.log
+.DS_Store
+random_walks.txt
+emb
+graph
+.vscode
+__pycache__
+pickles

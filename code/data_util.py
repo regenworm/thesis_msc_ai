@@ -15,7 +15,7 @@ sns.set_theme(palette=pal)
 graph_vis_options = {
     "font_size": 24,
     "node_size": 1000,
-    "linewidths": 5,
+    "linewidths": 20,
     "arrows": True,
     "width": 5,
     "node_color": c1,
@@ -44,8 +44,11 @@ def vis_graph(graph, set_labels=True, options=graph_vis_options):
     visualise graph through networkx draw
     """
     position = nx.spring_layout(graph)
-    labels = {node: node for node in graph.nodes()}
-    nodes = nx.draw(graph, position, labels=labels, **options)
+    if set_labels:
+        labels = {node: node for node in graph.nodes()}
+    else:
+        labels = {node: '' for node in graph.nodes()}
+    nodes = nx.draw(graph, position, labels=labels)
     return nodes
 
 
@@ -121,3 +124,29 @@ def vis_edge_embeddings(data, edges, edge_labels):
     label_colors = cmap(edge_labels)
     fig = vis_labeled_embeddings(edges, edge_labels, label_colors)
     return fig
+
+
+def sample_edge_idx(nodes):
+    n = np.random.choice(range(len(nodes)), 2)
+    return f"('{n[0]}', '{n[1]}')", f"('{n[1]}', '{n[0]}')"
+
+def add_noise(data, n_remove=5, n_add=5):
+    """
+    @data: networkx graph
+    """
+    new_data = data.copy()
+
+    # missing edges
+    edges = np.array(data.edges)
+    r_idx = np.random.choice(range(len(edges)), n_remove)
+    new_data.remove_edges_from(edges[r_idx])
+
+    # spurious edges
+    nodes = np.array(data.nodes)
+    a_idx = np.random.choice(range(len(nodes)), n_add * 2)
+    s_edge = nodes[a_idx]
+
+    for i in range(0, len(a_idx), 2):
+        new_data.add_edge(s_edge[i], s_edge[i+1])
+
+    return new_data

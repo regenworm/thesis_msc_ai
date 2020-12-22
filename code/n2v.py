@@ -10,11 +10,12 @@ from classifier import classify
 
 # utility
 import data_util as du
+import numpy as np
 
 
 def train_node_embeddings(graph, embedding_dim, fname_model=None):
     node2vec = Node2Vec(graph, dimensions=embedding_dim,
-                        walk_length=100, num_walks=50, workers=4)
+                        walk_length=10, num_walks=10, workers=4)
 
     # Embed nodes
     emb_model = node2vec.fit(window=10, min_count=1, batch_words=4)
@@ -53,7 +54,7 @@ def get_edge_embeddings(data, embed_dim, emb_name='l2'):
 
 
 class N2VModel ():
-    def __init__(self, embed_dim=2, emb_name='l2', c_idx=0, model_fname=None):
+    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None):
         """
         @embed_dim: integer, dimensionality of generated embeddings
         @c_idx: integer, determines which classifier from scikit to use
@@ -106,14 +107,82 @@ class N2VModel ():
             self.gen_embeddings(data)
 
         # fit classifier
-        edge_labels = du.construct_embedding_labels(data, self.ee_kv)
-        self.clf = classify(self.edges, edge_labels)
+        # sample balanced classes
+        n_data_edges = len(data.edges)
+        feats = []
+        keys = self.ee_kv.vocab.keys()
+        labels = np.zeros(n_data_edges * 2)
+        labels[:n_data_edges] = 1
+
+        # for each edge in data, get feature vector
+        for edge in data.edges:
+            print(edge)
+            feat_vec = None
+            # convert edge to string
+            edge = str(edge)
+
+            # if edge found save
+            if edge in keys:
+                feat_vec = self.ee_kv[edge]
+            # if edge not found, get reverse edge
+            else:
+                e1, e2 = du.edge_str2tuple(edge)
+                feat_vec = self.ee_kv[f"('{e2}', '{e1}')"]
+
+            # append to feats
+            feats.append(feat_vec)
+        
+        # negative samples
+        for i in range(n_data_edges):
+            edge, r_edge = du.sample_edge_idx(data.nodes)
+            # if edge found save
+            if edge in keys:
+                feat_vec = self.ee_kv[edge]
+            # if edge not found, get reverse edge
+            elif r_edge in keys:
+                feat_vec = self.ee_kv[r_edge]
+            else:
+                i-=1
+                continue
+            feats.append(feat_vec)
+        feats = np.array(feats)
+        print(len(feats), len(labels))
+
+
+        self.clf = classify(feats, labels)
 
     def predict(self, data):
         """
         predict labels for data
         """
-        return self.clf.predict(data)
+        # get all feature vector names (edge1, edge2)
+        feats = []
+        keys = self.ee_kv.vocab.keys()
+
+        # for each edge in data, get feature vector
+        for edge in data.edges:
+            feat_vec = None
+            # convert edge to string
+            edge = str(edge)
+
+            # if edge found save
+            if edge in keys:
+                feat_vec = self.ee_kv[edge]
+            # if edge not found, get reverse edge
+            else:
+                e1, e2 = du.edge_str2tuple(edge)
+                feat_vec = self.ee_kv[f"('{e2}', '{e1}')"]
+
+            # append to feats
+            feats.append(feat_vec)
+
+        feats = np.array(feats)
+
+        # gen predictions for data
+        preds = self.clf.predict_proba(feats)
+        return preds
+
+
 
     def score(self, data):
         """
