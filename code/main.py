@@ -68,8 +68,8 @@ def parse_args():
 
     parser.add_argument('--embed_dim',
                         type=int,
-                        default=5,
-                        help='Number of dimensions. Default is 2.')
+                        default=10,
+                        help='Number of dimensions. Default is 10.')
 
     parser.add_argument('--show_vis',
                         dest='show_vis',
