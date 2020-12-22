@@ -32,7 +32,7 @@ class S2VModel():
         """
         # TODO: load self.emb_name and self.embed_dim
         model = KeyedVectors.load_word2vec_format(model_fname)
-        self.nodes = model.wv.vectors
+        self.nodes = model.wv
 
         edge_model = train_edge_embeddings(model, emb_name='l2')
         self.ee_kv = edge_model.as_keyed_vectors()
@@ -52,7 +52,7 @@ class S2VModel():
         # node model
         s2v.exec_struc2vec(args, G=G)
         model = s2v.learn_embeddings(args)
-        self.nodes = model.wv.vectors
+        self.nodes = model.wv
 
         # edge model
         edge_model = train_edge_embeddings(model, emb_name='l2')
@@ -61,19 +61,10 @@ class S2VModel():
 
     def get_embedding(self, edge, keys):
         edge = str(edge)
-        e1, e2 = du.edge_str2tuple(edge)
-        r_edge = f"('{e2}', '{e1}')"
-
-        # if edge found save
-        if edge in keys:
-            feat_vec = self.ee_kv[edge]
-        # if edge not found, get reverse edge
-        elif r_edge in keys:
-            feat_vec = self.ee_kv[r_edge]
-        else:
-            return -1
-
-        return feat_vec
+        n1, n2 = du.edge_str2tuple(edge)
+        node1 = self.nodes[n1]
+        node2 = self.nodes[n2]
+        return np.hstack((node1, node2))
 
     def get_feature_vectors(self, edges):
         feats = []
@@ -107,13 +98,13 @@ class S2VModel():
 
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
-        keys = self.ee_kv.vocab.keys()
-
+        keys = self.nodes.vocab.keys()
         # negative samples
         for i in range(n_data_edges):
-            edge, r_edge = du.sample_edge_idx(data.nodes)
+            edge, r_edge = du.sample_edge_idx(keys)
+
             feat_vec = self.get_embedding(edge, keys)
-            if feat_vec is -1:
+            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
                 i -= 1
                 continue
             feats.append(feat_vec)
@@ -157,12 +148,32 @@ class S2VModel():
         """
         get score for label prediction of data
         """
-        feats = self.data_to_features(data)
+        # sample balanced classes
+        n_data_edges = len(data.edges)
+        feats = []
+        labels = np.zeros(n_data_edges * 2)
+        labels[:n_data_edges] = 1
+
+        # for each edge in data, get feature vector
+        feats = self.get_feature_vectors(data.edges)
+        keys = self.ee_kv.vocab.keys()
+
+        # negative samples
+        for i in range(n_data_edges):
+            edge, r_edge = du.sample_edge_idx(data.nodes)
+
+            feat_vec = self.get_embedding(edge, keys)
+            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+                i -= 1
+                continue
+            feats.append(feat_vec)
+
+        feats = np.array(feats)
+
         predictions = self.clf.predict_proba(feats)
-        labels = np.ones(len(predictions))
         thresholded = (predictions[:, 1] > self.thresh).astype(int)
 
         du.plot_prc(self.clf, feats, labels)
-
+        print(predictions)
         f1 = f1_score(labels, thresholded)
         return f1

@@ -55,7 +55,7 @@ def get_edge_embeddings(data, embed_dim, emb_name='l2'):
 
 
 class N2VModel ():
-    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None, thresh=0.3):
+    def __init__(self, embed_dim=10, emb_name='l2', c_idx=-1, model_fname=None, thresh=0.5):
         """
         @embed_dim: integer, dimensionality of generated embeddings
         @c_idx: integer, determines which classifier from scikit to use
