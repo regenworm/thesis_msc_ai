@@ -55,7 +55,7 @@ def get_edge_embeddings(data, embed_dim, emb_name='l2'):
 
 
 class N2VModel ():
-    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None, thresh=0.5):
+    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None, thresh=0.3):
         """
         @embed_dim: integer, dimensionality of generated embeddings
         @c_idx: integer, determines which classifier from scikit to use
@@ -79,7 +79,7 @@ class N2VModel ():
         """
         # TODO: load self.emb_name and self.embed_dim
         model = KeyedVectors.load_word2vec_format(model_fname)
-        self.nodes = model.wv.vectors
+        self.nodes = model.wv
 
         edge_model = train_edge_embeddings(model, emb_name='l2')
         self.ee_kv = edge_model.as_keyed_vectors()
@@ -93,28 +93,19 @@ class N2VModel ():
         # generate embeddings
         # node model
         model = train_node_embeddings(data, self.embed_dim)
-        self.nodes = model.wv.vectors
+        self.nodes = model.wv
 
         # edge model
-        edge_model = train_edge_embeddings(model, emb_name='l2')
+        edge_model = train_edge_embeddings(model, emb_name=self.emb_name)
         self.ee_kv = edge_model.as_keyed_vectors()
         self.edges = self.ee_kv.vectors
 
     def get_embedding(self, edge, keys):
         edge = str(edge)
-        e1, e2 = du.edge_str2tuple(edge)
-        r_edge = f"('{e2}', '{e1}')"
-
-        # if edge found save
-        if edge in keys:
-            feat_vec = self.ee_kv[edge]
-        # if edge not found, get reverse edge
-        elif r_edge in keys:
-            feat_vec = self.ee_kv[r_edge]
-        else:
-            return -1
-        
-        return feat_vec
+        n1, n2 = du.edge_str2tuple(edge)
+        node1 = self.nodes[n1]
+        node2 = self.nodes[n2]
+        return np.hstack((node1, node2))
 
     def get_feature_vectors(self, edges):
         feats = []
