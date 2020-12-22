@@ -48,8 +48,7 @@ def run(args):
 
     # classify
     print(f'== TESTING MODEL  ==')
-    predictions = model.predict(data)
-    print(predictions)
+    # predictions = model.predict(data)
     score = model.score(data)
     print(f'Score for {args.model_type}: {score}')
 
@@ -69,7 +68,7 @@ def parse_args():
 
     parser.add_argument('--embed_dim',
                         type=int,
-                        default=2,
+                        default=5,
                         help='Number of dimensions. Default is 2.')
 
     parser.add_argument('--show_vis',

@@ -10,12 +10,13 @@ from classifier import classify
 
 # utility
 import data_util as du
+from sklearn.metrics import f1_score
 import numpy as np
 
 
 def train_node_embeddings(graph, embedding_dim, fname_model=None):
     node2vec = Node2Vec(graph, dimensions=embedding_dim,
-                        walk_length=10, num_walks=10, workers=4)
+                        walk_length=10, num_walks=50, workers=4)
 
     # Embed nodes
     emb_model = node2vec.fit(window=10, min_count=1, batch_words=4)
@@ -54,7 +55,7 @@ def get_edge_embeddings(data, embed_dim, emb_name='l2'):
 
 
 class N2VModel ():
-    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None):
+    def __init__(self, embed_dim=2, emb_name='l2', c_idx=-1, model_fname=None, thresh=0.5):
         """
         @embed_dim: integer, dimensionality of generated embeddings
         @c_idx: integer, determines which classifier from scikit to use
@@ -65,6 +66,7 @@ class N2VModel ():
         self.emb_name = emb_name
         self.classifier_idx = c_idx
         self.from_file = False
+        self.thresh = thresh
 
         if model_fname is not None:
             self.from_file = True
@@ -98,6 +100,37 @@ class N2VModel ():
         self.ee_kv = edge_model.as_keyed_vectors()
         self.edges = self.ee_kv.vectors
 
+    def get_embedding(self, edge, keys):
+        edge = str(edge)
+        e1, e2 = du.edge_str2tuple(edge)
+        r_edge = f"('{e2}', '{e1}')"
+
+        # if edge found save
+        if edge in keys:
+            feat_vec = self.ee_kv[edge]
+        # if edge not found, get reverse edge
+        elif r_edge in keys:
+            feat_vec = self.ee_kv[r_edge]
+        else:
+            return -1
+        
+        return feat_vec
+
+    def get_feature_vectors(self, edges):
+        feats = []
+        keys = self.ee_kv.vocab.keys()
+        # for each edge in data, get feature vector
+        for edge in edges:
+            feat_vec = self.get_embedding(edge, keys)
+
+            if feat_vec is -1:
+                print('Embedding not found')
+                continue
+            # append to feats
+            feats.append(feat_vec)
+
+        return feats
+
     def fit(self, data):
         """
         @data: networkx graph
@@ -110,51 +143,27 @@ class N2VModel ():
         # sample balanced classes
         n_data_edges = len(data.edges)
         feats = []
-        keys = self.ee_kv.vocab.keys()
         labels = np.zeros(n_data_edges * 2)
         labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
-        for edge in data.edges:
-            print(edge)
-            feat_vec = None
-            # convert edge to string
-            edge = str(edge)
+        feats = self.get_feature_vectors(data.edges)
+        keys = self.ee_kv.vocab.keys()
 
-            # if edge found save
-            if edge in keys:
-                feat_vec = self.ee_kv[edge]
-            # if edge not found, get reverse edge
-            else:
-                e1, e2 = du.edge_str2tuple(edge)
-                feat_vec = self.ee_kv[f"('{e2}', '{e1}')"]
-
-            # append to feats
-            feats.append(feat_vec)
-        
         # negative samples
         for i in range(n_data_edges):
             edge, r_edge = du.sample_edge_idx(data.nodes)
-            # if edge found save
-            if edge in keys:
-                feat_vec = self.ee_kv[edge]
-            # if edge not found, get reverse edge
-            elif r_edge in keys:
-                feat_vec = self.ee_kv[r_edge]
-            else:
-                i-=1
+
+            feat_vec = self.get_embedding(edge, keys)
+            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+                i -= 1
                 continue
             feats.append(feat_vec)
+
         feats = np.array(feats)
-        print(len(feats), len(labels))
-
-
         self.clf = classify(feats, labels)
 
-    def predict(self, data):
-        """
-        predict labels for data
-        """
+    def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
         feats = []
         keys = self.ee_kv.vocab.keys()
@@ -166,27 +175,56 @@ class N2VModel ():
             edge = str(edge)
 
             # if edge found save
-            if edge in keys:
-                feat_vec = self.ee_kv[edge]
-            # if edge not found, get reverse edge
-            else:
-                e1, e2 = du.edge_str2tuple(edge)
-                feat_vec = self.ee_kv[f"('{e2}', '{e1}')"]
+            feat_vec = self.get_embedding(edge, keys)
+            if feat_vec is -1:
+                print('Embedding not found')
+                continue
 
             # append to feats
             feats.append(feat_vec)
 
         feats = np.array(feats)
+        return feats
 
+    def predict(self, data):
+        """
+        predict labels for data
+        """
+        feats = self.data_to_features(data)
         # gen predictions for data
         preds = self.clf.predict_proba(feats)
         return preds
-
-
 
     def score(self, data):
         """
         get score for label prediction of data
         """
-        edge_labels = du.construct_embedding_labels(data, self.ee_kv)
-        return self.clf.score(self.edges, edge_labels)
+        # sample balanced classes
+        n_data_edges = len(data.edges)
+        feats = []
+        labels = np.zeros(n_data_edges * 2)
+        labels[:n_data_edges] = 1
+
+        # for each edge in data, get feature vector
+        feats = self.get_feature_vectors(data.edges)
+        keys = self.ee_kv.vocab.keys()
+
+        # negative samples
+        for i in range(n_data_edges):
+            edge, r_edge = du.sample_edge_idx(data.nodes)
+
+            feat_vec = self.get_embedding(edge, keys)
+            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+                i -= 1
+                continue
+            feats.append(feat_vec)
+
+        feats = np.array(feats)
+
+        predictions = self.clf.predict_proba(feats)
+        thresholded = (predictions[:, 1] > self.thresh).astype(int)
+
+        du.plot_prc(self.clf, feats, labels)
+        print(predictions)
+        f1 = f1_score(labels, thresholded)
+        return f1

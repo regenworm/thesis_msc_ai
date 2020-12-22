@@ -5,6 +5,7 @@ import gensim as gs
 from sklearn.manifold import TSNE
 import numpy as np
 import re
+from sklearn.metrics import plot_precision_recall_curve
 
 # some theme compatability issues
 pal = sns.color_palette('Set2')
@@ -130,7 +131,7 @@ def sample_edge_idx(nodes):
     n = np.random.choice(range(len(nodes)), 2)
     return f"('{n[0]}', '{n[1]}')", f"('{n[1]}', '{n[0]}')"
 
-def add_noise(data, n_remove=5, n_add=5):
+def add_noise(data, n_remove=50, n_add=50):
     """
     @data: networkx graph
     """
@@ -150,3 +151,8 @@ def add_noise(data, n_remove=5, n_add=5):
         new_data.add_edge(s_edge[i], s_edge[i+1])
 
     return new_data
+
+def plot_prc(clf, xt, yt):
+    prc_curve = plot_precision_recall_curve(clf, xt, yt)
+    plt.savefig('plots/prc_emb.png')
+    return prc_curve
