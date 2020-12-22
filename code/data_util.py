@@ -128,7 +128,7 @@ def vis_edge_embeddings(data, edges, edge_labels):
 
 
 def sample_edge_idx(nodes):
-    n = np.random.choice(range(len(nodes)), 2)
+    n = np.random.choice(range(len(nodes)-1), 2)
     return f"('{n[0]}', '{n[1]}')", f"('{n[1]}', '{n[0]}')"
 
 def add_noise(data, n_remove=50, n_add=50):
@@ -139,18 +139,25 @@ def add_noise(data, n_remove=50, n_add=50):
 
     # missing edges
     edges = np.array(data.edges)
-    r_idx = np.random.choice(range(len(edges)), n_remove)
+    r_idx = np.random.choice(range(len(edges)-1), n_remove)
     new_data.remove_edges_from(edges[r_idx])
 
     # spurious edges
     nodes = np.array(data.nodes)
-    a_idx = np.random.choice(range(len(nodes)), n_add * 2)
+    a_idx = np.random.choice(range(len(nodes)-1), n_add * 2)
     s_edge = nodes[a_idx]
 
     for i in range(0, len(a_idx), 2):
         new_data.add_edge(s_edge[i], s_edge[i+1])
 
+    # ensure connected
+    isolates = list(nx.isolates(new_data))
+    a_idx = np.random.choice(range(len(nodes)-1), len(isolates))
+    for n1, n2 in zip(isolates, a_idx):
+        new_data.add_edge(n1, n2)
+
     return new_data
+
 
 def plot_prc(clf, xt, yt):
     prc_curve = plot_precision_recall_curve(clf, xt, yt)
