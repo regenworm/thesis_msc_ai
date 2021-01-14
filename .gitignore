@@ -142,3 +142,9 @@ literature/**
 .DS_Store
 emb
 random_walks.txt
+DRNE-master
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.synctex.gz
