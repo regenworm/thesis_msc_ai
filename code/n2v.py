@@ -208,9 +208,6 @@ class N2VModel ():
         # negative samples
         neg_samples = self.scaler.transform(self.negative_sample(n_data_edges, data, keys))
 
-        predictions = self.clf.predict_proba(feats)
-        thresholded = (predictions[:, 1] > self.thresh).astype(int)
-        print(thresholded)
         # + samples
         du.plot_prc(self.clf, feats, labels[:n_data_edges], fname='prc_emb_pos.png')
         # - samples
