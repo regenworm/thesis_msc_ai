@@ -16,7 +16,7 @@ import numpy as np
 
 def train_node_embeddings(graph, embedding_dim, fname_model=None):
     node2vec = Node2Vec(graph, dimensions=embedding_dim,
-                        walk_length=10, num_walks=50, workers=4)
+                        walk_length=10, num_walks=20, workers=4)
 
     # Embed nodes
     emb_model = node2vec.fit(window=10, min_count=1, batch_words=4)
@@ -155,18 +155,9 @@ class N2VModel ():
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
         keys = self.nodes.vocab.keys()
-        # negative samples
-        for i in range(n_data_edges):
-            edge, r_edge = du.sample_edge_idx(data.nodes)
-
-            feat_vec = self.get_embedding(edge, keys)
-            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
-                i -= 1
-                continue
-            feats.append(feat_vec)
-
-        feats = np.array(feats)
-        self.clf = classify(feats, labels)
+        neg_samples = self.negative_sample(n_data_edges, data, keys)
+        feats = np.vstack((feats,neg_samples))
+        self.clf, self.scaler = classify(feats, labels)
 
     def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
@@ -219,8 +210,15 @@ class N2VModel ():
 
         predictions = self.clf.predict_proba(feats)
         thresholded = (predictions[:, 1] > self.thresh).astype(int)
+        print(thresholded)
+        # + samples
+        du.plot_prc(self.clf, feats, labels[:n_data_edges], fname='prc_emb_pos.png')
+        # - samples
+        du.plot_prc(self.clf, np.array(neg_samples), labels[n_data_edges:], fname='prc_emb_neg.png')
+        # all samples
+        du.plot_prc(self.clf, np.vstack((feats,neg_samples)), labels, fname='prc_emb_all.png')
 
-        du.plot_prc(self.clf, feats, labels)
-        print(predictions)
-        f1 = f1_score(labels, thresholded)
+        # print(predictions)
+        # f1 = f1_score(labels, thresholded)
+        f1 = -1
         return f1

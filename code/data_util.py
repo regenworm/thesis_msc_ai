@@ -5,8 +5,9 @@ import gensim as gs
 from sklearn.manifold import TSNE
 import numpy as np
 import re
-from sklearn.metrics import plot_precision_recall_curve
+from sklearn.metrics import precision_recall_curve, plot_precision_recall_curve
 from copy import deepcopy
+from os import path
 
 # some theme compatability issues
 pal = sns.color_palette('Set2')
@@ -158,7 +159,17 @@ def add_noise(data, n_remove=50, n_add=50):
     return new_data
 
 
-def plot_prc(clf, xt, yt):
+def plot_prc(clf, xt, yt, fname='prc_emb.png', dirname='plots/'):
+    preds = clf.predict_proba(xt)
+
+    if yt.sum() == 0:
+        preds = 1 - preds
+        yt += 1
+
+    precision, recall, thresholds = precision_recall_curve(yt, preds[:, 1])
     prc_curve = plot_precision_recall_curve(clf, xt, yt)
-    plt.savefig('plots/prc_emb.png')
+    plt.savefig(path.join(dirname, fname))
+    print('prc',fname,precision)
+    print('rec',fname,recall)
+    # print('Precision: %f, recall: %f' % (precision, recall))
     return prc_curve
