@@ -119,7 +119,22 @@ class N2VModel ():
                 continue
             # append to feats
             feats.append(feat_vec)
+        feats = np.array(feats)
+        return feats
 
+    def negative_sample(self, n_edges, data, keys):
+        feats = []
+        # negative samples
+        for i in range(n_edges):
+            edge, r_edge = du.sample_edge_idx(data.nodes)
+
+            feat_vec = self.get_embedding(edge, keys)
+            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+                i -= 1
+                continue
+            feats.append(feat_vec)
+        
+        feats = np.array(feats)
         return feats
 
     def fit(self, data):
@@ -196,20 +211,11 @@ class N2VModel ():
         labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
-        feats = self.get_feature_vectors(data.edges)
+        feats = self.scaler.transform(self.get_feature_vectors(data.edges))
         keys = self.ee_kv.vocab.keys()
 
         # negative samples
-        for i in range(n_data_edges):
-            edge, r_edge = du.sample_edge_idx(data.nodes)
-
-            feat_vec = self.get_embedding(edge, keys)
-            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
-                i -= 1
-                continue
-            feats.append(feat_vec)
-
-        feats = np.array(feats)
+        neg_samples = self.scaler.transform(self.negative_sample(n_data_edges, data, keys))
 
         predictions = self.clf.predict_proba(feats)
         thresholded = (predictions[:, 1] > self.thresh).astype(int)

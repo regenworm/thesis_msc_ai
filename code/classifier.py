@@ -24,13 +24,12 @@ classifiers = [
     RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1),
     MLPClassifier(alpha=1, max_iter=1000)]
 
-def normalize_data(X):
-    return StandardScaler().fit_transform(X)
 
 
 def classify(X, y, cl=-1):
-    X = normalize_data(X)
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
     clf = classifiers[cl]
     clf.fit(X, y)
 
-    return clf
+    return clf, scaler
