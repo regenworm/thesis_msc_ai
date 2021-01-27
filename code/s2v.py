@@ -73,7 +73,7 @@ class S2VModel():
         for edge in edges:
             feat_vec = self.get_embedding(edge, keys)
 
-            if feat_vec is -1:
+            if feat_vec == -1:
                 print('Embedding not found')
                 continue
             # append to feats
@@ -104,7 +104,7 @@ class S2VModel():
             edge, r_edge = du.sample_edge_idx(data.nodes)
 
             feat_vec = self.get_embedding(edge, keys)
-            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+            if (feat_vec == -1) or (edge in data.edges) or (r_edge in data.edges):
                 i -= 1
                 continue
             feats.append(feat_vec)
@@ -125,7 +125,7 @@ class S2VModel():
 
             # if edge found save
             feat_vec = self.get_embedding(edge, keys)
-            if feat_vec is -1:
+            if feat_vec == -1:
                 print('Embedding not found')
                 continue
 
@@ -163,7 +163,7 @@ class S2VModel():
             edge, r_edge = du.sample_edge_idx(data.nodes)
 
             feat_vec = self.get_embedding(edge, keys)
-            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+            if (feat_vec == -1) or (edge in data.edges) or (r_edge in data.edges):
                 i -= 1
                 continue
             feats.append(feat_vec)

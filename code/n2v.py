@@ -124,6 +124,7 @@ class N2VModel ():
 
     def negative_sample(self, n_edges, data, keys):
         feats = []
+        indices = []
         # negative samples
         for i in range(n_edges):
             edge, r_edge = du.sample_edge_idx(data.nodes)
@@ -133,18 +134,15 @@ class N2VModel ():
                 i -= 1
                 continue
             feats.append(feat_vec)
-        
+            indices.append(edge)
+
         feats = np.array(feats)
-        return feats
+        return feats, indices
 
     def fit(self, data):
         """
         @data: networkx graph
         """
-        # if embeddings not loaded
-        if not self.from_file:
-            self.gen_embeddings(data)
-
         # fit classifier
         # sample balanced classes
         n_data_edges = len(data.edges)
@@ -155,9 +153,11 @@ class N2VModel ():
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
         keys = self.nodes.vocab.keys()
-        neg_samples = self.negative_sample(n_data_edges, data, keys)
-        feats = np.vstack((feats,neg_samples))
+        neg_feats, indices = self.negative_sample(n_data_edges, data, keys)
+        feats = np.vstack((feats, neg_feats))
         self.clf, self.scaler = classify(feats, labels)
+
+        return neg_feats, indices
 
     def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
@@ -191,31 +191,41 @@ class N2VModel ():
         preds = self.clf.predict_proba(feats)
         return preds
 
-    def score(self, data):
+    def score(self, data, missing, spurious, it=''):
         """
         get score for label prediction of data
         """
+        it = str(it)
         # sample balanced classes
         n_data_edges = len(data.edges)
-        feats = []
         labels = np.zeros(n_data_edges * 2)
         labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
-        feats = self.scaler.transform(self.get_feature_vectors(data.edges))
-        keys = self.ee_kv.vocab.keys()
+        true_pos_samples = self.scaler.transform(self.get_feature_vectors(data.edges))
+
 
         # negative samples
-        neg_samples = self.scaler.transform(self.negative_sample(n_data_edges, data, keys))
+        keys = self.ee_kv.vocab.keys()
+        neg_feats, indices = self.negative_sample(n_data_edges, data, keys)
+        neg_samples = self.scaler.transform(neg_feats)
 
-        # + samples
-        du.plot_prc(self.clf, feats, labels[:n_data_edges], fname='prc_emb_pos.png')
-        # - samples
-        du.plot_prc(self.clf, np.array(neg_samples), labels[n_data_edges:], fname='prc_emb_neg.png')
+        # # + samples
+        # du.plot_metrics(self.clf, true_pos_samples, labels[:n_data_edges], fname='emb_pos'+ it +'.png')
+        # # - samples
+        # du.plot_metrics(self.clf, np.array(neg_samples), labels[n_data_edges:], fname='emb_neg'+it+'.png')
+
         # all samples
-        du.plot_prc(self.clf, np.vstack((feats,neg_samples)), labels, fname='prc_emb_all.png')
+        du.plot_metrics(self.clf, np.vstack((true_pos_samples, neg_samples)), labels, fname='emb_all'+it+'.png')
 
-        # print(predictions)
-        # f1 = f1_score(labels, thresholded)
-        f1 = -1
-        return f1
+        # missing, spurious
+        # get missing/spurious features
+        n_noisy_samples = len(missing)
+        noisy_samples = self.scaler.transform(self.get_feature_vectors(missing + spurious))
+        noisy_sample_labels = np.zeros(n_noisy_samples * 2)
+        noisy_sample_labels[:n_noisy_samples] = 1
+        du.plot_metrics(self.clf, noisy_samples, noisy_sample_labels, fname='emb_noisy'+it+'.png')
+
+        preds_missing = self.clf.predict_proba(noisy_samples[:n_noisy_samples])
+        preds_spurious = self.clf.predict_proba(noisy_samples[n_noisy_samples:])
+        return preds_missing, preds_spurious, neg_feats, indices
