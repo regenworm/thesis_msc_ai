@@ -149,3 +149,4 @@ DRNE-master
 *.fls
 *.synctex.gz
 plots/
+results/

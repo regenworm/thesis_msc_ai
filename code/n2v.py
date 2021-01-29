@@ -7,6 +7,7 @@ from gensim.models import KeyedVectors
 
 # classifier
 from classifier import classify
+import pickle
 
 # utility
 import data_util as du
@@ -43,48 +44,30 @@ def train_edge_embeddings(emb_model, emb_name='l2', fname_edge_embs=None):
     return edges_embs
 
 
-def get_edge_embeddings(data, embed_dim, emb_name='l2'):
-    """
-    input data, return node features, edge features,
-    """
-    emb_model = train_node_embeddings(data, embed_dim)
-    edge_embeddings = train_edge_embeddings(emb_model, emb_name=emb_name)
-    ee_kv = edge_embeddings.as_keyed_vectors()
-
-    return emb_model.wv.vectors, ee_kv.vectors, ee_kv
-
-
 class N2VModel ():
-    def __init__(self, embed_dim=10, emb_name='l2', c_idx=-1, model_fname=None, thresh=0.5):
+    def __init__(self, embed_dim=10, emb_name='l2', c_idx=-1, thresh=0.5):
         """
         @embed_dim: integer, dimensionality of generated embeddings
         @c_idx: integer, determines which classifier from scikit to use
         @emb_name: str, determines which edge embedder from n2v to use
         @model_fname: str, if set, loads w2v format gensim model from file
         """
+        self.model_name = 'n2v'
         self.embed_dim = embed_dim
         self.emb_name = emb_name
         self.classifier_idx = c_idx
         self.from_file = False
         self.thresh = thresh
 
-        if model_fname is not None:
-            self.from_file = True
-            self.load_model(model_fname)
+    @staticmethod
+    def load_model(fname):
+        with open(fname, 'rb') as f:
+            model = pickle.load(f)
+            return model
 
-    def load_model(self, model_fname):
-        """
-        @model_fname: str, location of gensim word2vec node embeddings model
-                      (saved in word2vec format)
-        """
-        # TODO: load self.emb_name and self.embed_dim
-        model = KeyedVectors.load_word2vec_format(model_fname)
-        self.nodes = model.wv
-
-        edge_model = train_edge_embeddings(model, emb_name='l2')
-        self.ee_kv = edge_model.as_keyed_vectors()
-        self.edges = self.ee_kv.vectors
-        # still needs classfier from fit
+    def save_model(self, fname):
+        with open(fname, 'wb') as f:
+            pickle.dump(self, f)
 
     def gen_embeddings(self, data):
         """
@@ -124,7 +107,7 @@ class N2VModel ():
 
     def negative_sample(self, n_edges, data, keys):
         feats = []
-        indices = []
+        edge_names = []
         # negative samples
         for i in range(n_edges):
             edge, r_edge = du.sample_edge_idx(data.nodes)
@@ -134,10 +117,10 @@ class N2VModel ():
                 i -= 1
                 continue
             feats.append(feat_vec)
-            indices.append(edge)
+            edge_names.append(edge)
 
         feats = np.array(feats)
-        return feats, indices
+        return edge_names, feats
 
     def fit(self, data):
         """
@@ -153,11 +136,11 @@ class N2VModel ():
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
         keys = self.nodes.vocab.keys()
-        neg_feats, indices = self.negative_sample(n_data_edges, data, keys)
+        neg_edge_names, neg_feats  = self.negative_sample(n_data_edges, data, keys)
         feats = np.vstack((feats, neg_feats))
         self.clf, self.scaler = classify(feats, labels)
 
-        return neg_feats, indices
+        return neg_edge_names, neg_feats
 
     def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
@@ -191,41 +174,39 @@ class N2VModel ():
         preds = self.clf.predict_proba(feats)
         return preds
 
-    def score(self, data, missing, spurious, it=''):
+    def score_negative_sampling(self, data, num_samples=None):
         """
-        get score for label prediction of data
+        get score for label prediction of data with negative sampling
         """
-        it = str(it)
-        # sample balanced classes
         n_data_edges = len(data.edges)
-        labels = np.zeros(n_data_edges * 2)
-        labels[:n_data_edges] = 1
+        # if not set, sample as many negative edges as there are positive
+        if num_samples is None:
+            num_samples = n_data_edges
+
+        # gen labels
+        all_labels = np.zeros(n_data_edges + num_samples)
+        all_labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
         true_pos_samples = self.scaler.transform(self.get_feature_vectors(data.edges))
 
 
-        # negative samples
+        # get negative samples
         keys = self.ee_kv.vocab.keys()
-        neg_feats, indices = self.negative_sample(n_data_edges, data, keys)
+        neg_edge_names, neg_feats = self.negative_sample(n_data_edges, data, keys)
         neg_samples = self.scaler.transform(neg_feats)
 
-        # # + samples
-        # du.plot_metrics(self.clf, true_pos_samples, labels[:n_data_edges], fname='emb_pos'+ it +'.png')
-        # # - samples
-        # du.plot_metrics(self.clf, np.array(neg_samples), labels[n_data_edges:], fname='emb_neg'+it+'.png')
+        # predict
+        all_samples = np.vstack((true_pos_samples, neg_samples))
+        all_samples_predict = self.clf.predict_proba(all_samples)
+        return all_samples_predict, all_labels, neg_edge_names, neg_samples
 
-        # all samples
-        du.plot_metrics(self.clf, np.vstack((true_pos_samples, neg_samples)), labels, fname='emb_all'+it+'.png')
-
-        # missing, spurious
-        # get missing/spurious features
-        n_noisy_samples = len(missing)
-        noisy_samples = self.scaler.transform(self.get_feature_vectors(missing + spurious))
-        noisy_sample_labels = np.zeros(n_noisy_samples * 2)
-        noisy_sample_labels[:n_noisy_samples] = 1
-        du.plot_metrics(self.clf, noisy_samples, noisy_sample_labels, fname='emb_noisy'+it+'.png')
-
-        preds_missing = self.clf.predict_proba(noisy_samples[:n_noisy_samples])
-        preds_spurious = self.clf.predict_proba(noisy_samples[n_noisy_samples:])
-        return preds_missing, preds_spurious, neg_feats, indices
+    def score(self, data):
+        """
+        get score for label prediction of data
+        @fname: output filename for plots
+        @dirname: output folder for plots
+        """
+        samples = self.scaler.transform(self.get_feature_vectors(data))
+        preds = self.clf.predict_proba(samples)
+        return preds

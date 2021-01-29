@@ -4,116 +4,122 @@ from s2v import S2VModel
 
 # utility
 import numpy as np
-import argparse
+import pandas as pd
 import matplotlib.pyplot as plt
-import data_util as du
+# import data_util as du
+from util import data_util
+from util import file_util
+from util import parameters
+from os import path
 
 
-def train_model(data, model_type, embed_dim, model_fname):
+def train_model(data, model_type, embed_dim):
     if model_type == 'n2v':
         nv_emb = N2VModel(embed_dim=embed_dim,
                           emb_name='l2',
-                          c_idx=-1,
-                          model_fname=model_fname)
+                          c_idx=-1)
         nv_emb.gen_embeddings(data)
         return nv_emb
     elif model_type == 's2v':
         sv_emb = S2VModel(embed_dim=embed_dim,
                           emb_name='l2',
-                          c_idx=-1,
-                          model_fname=model_fname)
+                          c_idx=-1)
         sv_emb.gen_embeddings(data)
         return sv_emb
 
 
 def run(args):
-    # load data
-    print(f'== LOADING DATA FROM {args.input} ==')
-    data = du.load_edge_list(args.input)
-    v = du.vis_graph(data)
-    plt.savefig('plots/data.png')
-    if args.show_vis:
-        plt.show(v)
+    # create run results directory and save metadata
+    run_dir = file_util.create_run_dir(results_dir=args.results_dir)
+    args.run_dir = run_dir
+    # run_metadata = pd.DataFrame(data=args)
+    # run = pd.DataFrame()
 
-    train_data, missing, spurious = du.add_noise(data)
-    v = du.vis_graph(train_data)
-    plt.savefig('plots/train_data.png')
-    if args.show_vis:
-        plt.show(v)
+    # load data
+    print(f'== LOADING DATA FROM {args.input_data} ==')
+    data = data_util.load_edge_list(args.input_data)
+
+    # add noise, and save modified data
+    train_data, missing, spurious = data_util.add_noise(data)
+    data_util.write_edge_list(train_data, path.join(run_dir, 'data', 'train_data.edgelist'))
+    data_util.write_pickle(missing.tolist(), path.join(run_dir, 'data', 'missing.npy'))
+    data_util.write_pickle(spurious.tolist(), path.join(run_dir, 'data', 'spurious.npy'))
 
     # train model
+    # generates embeddings and saves model binary
     print(f'== TRAINING {args.model_type} MODEL  ==')
     model = train_model(train_data, args.model_type,
-                        args.embed_dim, args.model_fname)
+                        args.embed_dim)
+    model.save_model(path.join(run_dir, 'model_output', 'model.bin'))
 
     # classify
+    # fit classifier and test model
     print(f'== TESTING MODEL  ==')
-    runs_mat_missing = []
-    runs_mat_spurious = []
-    runs_info = []
-    missing_indices = du.tuple2edge_str(missing)
-    spurious_indices = du.tuple2edge_str(spurious)
+
+    # for each bootstrap run
+    # collect predictions for missing and spurious links
+    bootstrap_preds_missing = []
+    bootstrap_preds_spurious = []
+    bootstrap_preds_all = []
+
+    # for each bootstrap run, for all negative samples
+    # collect list of tuples with (index of embedding, embedding)
+    fit_negative_samples = []
+    score_negative_samples = []
+    print("==== STARTING BOOTSTRAP ====")
+    # do bootstrappping
     for i in range(20):
-        neg_emb_fit, neg_emb_fit_indices = model.fit(train_data)
-        preds_missing, preds_spurious, neg_emb_score, neg_emb_score_indices = model.score(data, missing, spurious, it=i)
+        print(f"==== BOOTSTRAP {i} ====")
+        # fit and save negative samples
+        neg_edge_names, negative_samples = model.fit(train_data)
+        fit_negative_samples.append(
+            [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
+        )
+        print("FIT DONE")
+        # score edges and save predictions and negative samples
+        all_preds, all_labels, neg_edge_names, neg_samples = model.score_negative_sampling(data)
+        edge_names = list(data.edges)
+        print("SCORE DONE")
+        bootstrap_preds_all.append(
+            [(edge_name, preds, label) for edge_name, preds, label in zip(edge_names, all_preds, all_labels)]
+        )
+        score_negative_samples.append(
+            [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
+        )
+        print("SAVE DONE")
+        # score missing and spurious
+        preds_missing = model.score(missing)
+        print("SCORE MS DONE")
+        bootstrap_preds_missing.append(
+            [(edge_name, preds, label) for edge_name, preds, label in zip(missing, preds_missing, np.ones(len(missing)))]
+        )
+        preds_spurious = model.score(spurious)
+        bootstrap_preds_spurious.append(
+            [(edge_name, preds, label) for edge_name, preds, label in zip(spurious, preds_spurious, np.zeros(len(spurious)))]
+        )
+        print("SAVE MS DONE")
 
-        # store run information
-        runs_mat_missing.append(preds_missing)
-        runs_mat_spurious.append(preds_spurious)
-        run = {'neg_fit': {}, 'neg_score': {}}
-        run['neg_fit'].update([
-            (k, v) for k, v in zip(neg_emb_fit_indices, neg_emb_fit)
-        ])
-        run['neg_score'].update([
-            (k, v) for k, v in zip(neg_emb_score_indices, neg_emb_score)
-        ])
-        runs_info.append(run)
-    
-    runs_mat_missing = np.array(runs_mat_missing)[:, :, 1]
-    runs_mat_spurious = np.array(runs_mat_spurious)[:, :,  0]
-    print(runs_mat_missing.shape)
-    du.plot_heatmap(runs_mat_missing, fname='emb_missing.png', xticklabels=missing_indices)
-    du.plot_heatmap(runs_mat_spurious, fname='emb_spurious.png', xticklabels=spurious_indices)
+    data_util.write_pickle(bootstrap_preds_missing, path.join(run_dir, 'data', 'bootstrap_preds_missing.npy'))
+    data_util.write_pickle(bootstrap_preds_spurious, path.join(run_dir, 'data', 'bootstrap_preds_spurious.npy'))
+    data_util.write_pickle(bootstrap_preds_all, path.join(run_dir, 'data', 'bootstrap_preds_all.npy'))
+    data_util.write_pickle(fit_negative_samples, path.join(run_dir, 'data', 'fit_negative_samples.npy'))
+    data_util.write_pickle(score_negative_samples, path.join(run_dir, 'data', 'score_negative_samples.npy'))
 
-    # print(f'Score for {args.model_type}: {score}')
+    # # only save how correct the predictions are
+    # # so for missing predictions how probable is class 1
+    # # and for spurious predictions how probable is class 0
+    # runs_mat_missing = np.array(bootstrap_preds_missing)[:, :, 1]
+    # runs_mat_spurious = np.array(bootstrap_preds_spurious)[:, :,  0]
+
+    # # convert missing and spurious to index labels for heatmap
+    # missing_indices = data_util.tuple2edge_str(missing)
+    # data_util.plot_heatmap(runs_mat_missing, fname=f'{args.model_type}_emb_missing.png', xticklabels=missing_indices)
+    # spurious_indices = data_util.tuple2edge_str(spurious)
+    # data_util.plot_heatmap(runs_mat_spurious, fname=f'{args.model_type}_emb_spurious.png', xticklabels=spurious_indices)
 
     return
 
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Model graph and evaluate.")
-
-    parser.add_argument('--input',
-                        default='data/tissue_int.edgelist',
-                        help='Input graph path')
-
-    parser.add_argument('--output',
-                        default='emb/tissue_model.emb',
-                        help='Embeddings path')
-
-    parser.add_argument('--embed_dim',
-                        type=int,
-                        default=10,
-                        help='Number of dimensions. Default is 10.')
-
-    parser.add_argument('--show_vis',
-                        dest='show_vis',
-                        default=False,
-                        action='store_true')
-
-    parser.add_argument('--model_type',
-                        type=str,
-                        default='n2v',
-                        choices=['n2v', 's2v'])
-
-    parser.add_argument('--model_fname',
-                        nargs='?',
-                        default=None,
-                        help='Embeddings path')
-    return parser.parse_args()
-
-
 if __name__ == "__main__":
-    args = parse_args()
+    args = parameters.get_parameters()
 
     run(args)
