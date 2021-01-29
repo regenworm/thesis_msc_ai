@@ -76,7 +76,7 @@ class S2VModel():
 
     def negative_sample(self, n_edges, data, keys):
         feats = []
-        indices = []
+        edge_names = []
         # negative samples
         for i in range(n_edges):
             edge, r_edge = du.sample_edge_idx(data.nodes)
@@ -86,10 +86,10 @@ class S2VModel():
                 i -= 1
                 continue
             feats.append(feat_vec)
-            indices.append(edge)
+            edge_names.append(edge)
 
         feats = np.array(feats)
-        return feats, indices
+        return edge_names, feats
 
     def fit(self, data):
         """
@@ -105,11 +105,11 @@ class S2VModel():
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
         keys = self.nodes.vocab.keys()
-        neg_feats, indices = self.negative_sample(n_data_edges, data, keys)
+        neg_edge_names, neg_feats  = self.negative_sample(n_data_edges, data, keys)
         feats = np.vstack((feats, neg_feats))
         self.clf, self.scaler = classify(feats, labels)
 
-        return neg_feats, indices
+        return neg_edge_names, neg_feats
 
     def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
@@ -143,41 +143,39 @@ class S2VModel():
         preds = self.clf.predict_proba(feats)
         return preds
 
-    def score(self, data, missing, spurious, it=''):
+    def score_negative_sampling(self, data, num_samples=None):
         """
-        get score for label prediction of data
+        get score for label prediction of data with negative sampling
         """
-        it = str(it)
-        # sample balanced classes
         n_data_edges = len(data.edges)
-        labels = np.zeros(n_data_edges * 2)
-        labels[:n_data_edges] = 1
+        # if not set, sample as many negative edges as there are positive
+        if num_samples is None:
+            num_samples = n_data_edges
+
+        # gen labels
+        all_labels = np.zeros(n_data_edges + num_samples)
+        all_labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
         true_pos_samples = self.scaler.transform(self.get_feature_vectors(data.edges))
 
 
-        # negative samples
+        # get negative samples
         keys = self.ee_kv.vocab.keys()
-        neg_feats, indices = self.negative_sample(n_data_edges, data, keys)
+        neg_edge_names, neg_feats = self.negative_sample(num_samples, data, keys)
         neg_samples = self.scaler.transform(neg_feats)
 
-        # # + samples
-        # du.plot_metrics(self.clf, true_pos_samples, labels[:n_data_edges], fname='emb_pos'+ it +'.png')
-        # # - samples
-        # du.plot_metrics(self.clf, np.array(neg_samples), labels[n_data_edges:], fname='emb_neg'+it+'.png')
+        # predict
+        all_samples = np.vstack((true_pos_samples, neg_samples))
+        all_samples_predict = self.clf.predict_proba(all_samples)
+        return all_samples_predict, all_labels, neg_edge_names, neg_samples
 
-        # all samples
-        du.plot_metrics(self.clf, np.vstack((true_pos_samples, neg_samples)), labels, fname=f'{self.model_name}_emb_all'+it+'.png')
-
-        # missing, spurious
-        # get missing/spurious features
-        n_noisy_samples = len(missing)
-        noisy_samples = self.scaler.transform(self.get_feature_vectors(missing + spurious))
-        noisy_sample_labels = np.zeros(n_noisy_samples * 2)
-        noisy_sample_labels[:n_noisy_samples] = 1
-        du.plot_metrics(self.clf, noisy_samples, noisy_sample_labels, fname=f'{self.model_name}_emb_noisy'+it+'.png')
-
-        preds_missing = self.clf.predict_proba(noisy_samples[:n_noisy_samples])
-        preds_spurious = self.clf.predict_proba(noisy_samples[n_noisy_samples:])
-        return preds_missing, preds_spurious, neg_feats, indices
+    def score(self, data):
+        """
+        get score for label prediction of data
+        @fname: output filename for plots
+        @dirname: output folder for plots
+        """
+        samples = self.scaler.transform(self.get_feature_vectors(data))
+        preds = self.clf.predict_proba(samples)
+        return preds

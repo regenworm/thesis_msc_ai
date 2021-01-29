@@ -46,11 +46,10 @@ def run(args):
     data_util.write_pickle(spurious.tolist(), path.join(run_dir, 'data', 'spurious.npy'))
 
     # train model
-    # generates embeddings and saves model binary
+    # generates embeddings
     print(f'== TRAINING {args.model_type} MODEL  ==')
     model = train_model(train_data, args.model_type,
                         args.embed_dim)
-    model.save_model(path.join(run_dir, 'model_output', 'model.bin'))
 
     # classify
     # fit classifier and test model
@@ -66,30 +65,31 @@ def run(args):
     # collect list of tuples with (index of embedding, embedding)
     fit_negative_samples = []
     score_negative_samples = []
-    print("==== STARTING BOOTSTRAP ====")
+    print("== STARTING BOOTSTRAP ==")
     # do bootstrappping
     for i in range(20):
-        print(f"==== BOOTSTRAP {i} ====")
+        # print(f"==== BOOTSTRAP {i} ====")
         # fit and save negative samples
         neg_edge_names, negative_samples = model.fit(train_data)
         fit_negative_samples.append(
             [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
         )
-        print("FIT DONE")
+        # print("FIT DONE")
         # score edges and save predictions and negative samples
         all_preds, all_labels, neg_edge_names, neg_samples = model.score_negative_sampling(data)
-        edge_names = list(data.edges)
-        print("SCORE DONE")
+        edge_names = list(data.edges) + neg_edge_names
+        # print("SCORE DONE")
+        stuff = [(edge_name, preds, label) for edge_name, preds, label in zip(edge_names, all_preds, all_labels)]
         bootstrap_preds_all.append(
-            [(edge_name, preds, label) for edge_name, preds, label in zip(edge_names, all_preds, all_labels)]
+            stuff
         )
         score_negative_samples.append(
             [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
         )
-        print("SAVE DONE")
+        # print("SAVE DONE")
         # score missing and spurious
         preds_missing = model.score(missing)
-        print("SCORE MS DONE")
+        # print("SCORE MS DONE")
         bootstrap_preds_missing.append(
             [(edge_name, preds, label) for edge_name, preds, label in zip(missing, preds_missing, np.ones(len(missing)))]
         )
@@ -97,7 +97,7 @@ def run(args):
         bootstrap_preds_spurious.append(
             [(edge_name, preds, label) for edge_name, preds, label in zip(spurious, preds_spurious, np.zeros(len(spurious)))]
         )
-        print("SAVE MS DONE")
+        # print("SAVE MS DONE")
 
     data_util.write_pickle(bootstrap_preds_missing, path.join(run_dir, 'data', 'bootstrap_preds_missing.npy'))
     data_util.write_pickle(bootstrap_preds_spurious, path.join(run_dir, 'data', 'bootstrap_preds_spurious.npy'))
@@ -105,6 +105,8 @@ def run(args):
     data_util.write_pickle(fit_negative_samples, path.join(run_dir, 'data', 'fit_negative_samples.npy'))
     data_util.write_pickle(score_negative_samples, path.join(run_dir, 'data', 'score_negative_samples.npy'))
 
+    # save model binary
+    model.save_model(path.join(run_dir, 'model_output', 'model.bin'))
     # # only save how correct the predictions are
     # # so for missing predictions how probable is class 1
     # # and for spurious predictions how probable is class 0

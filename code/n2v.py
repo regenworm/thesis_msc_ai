@@ -193,7 +193,7 @@ class N2VModel ():
 
         # get negative samples
         keys = self.ee_kv.vocab.keys()
-        neg_edge_names, neg_feats = self.negative_sample(n_data_edges, data, keys)
+        neg_edge_names, neg_feats = self.negative_sample(num_samples, data, keys)
         neg_samples = self.scaler.transform(neg_feats)
 
         # predict

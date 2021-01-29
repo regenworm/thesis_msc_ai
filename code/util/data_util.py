@@ -107,6 +107,36 @@ def edge_list2edge_tuple(edges):
     return [(e1, e2) for e1, e2 in edges]
 
 
+def unpack_values(all_runs_predicions):
+    unpacked_preds = []
+    unpacked_labels = []
+    for bootstrap in all_runs_predicions:
+        run_preds = []
+        run_labels = []
+        run_edge_names = []
+
+        for edge_name, preds, label in bootstrap:
+            run_preds.append(preds)
+            run_labels.append(label)
+            run_edge_names.append(edge_name)
+
+        unpacked_preds.append(run_preds)
+        unpacked_labels.append(run_labels)
+    return np.array(unpacked_preds), run_edge_names, unpacked_labels
+
+
+def filter_preds_by_label(all_runs_preds, labels):
+    labels = np.array(labels).astype(int)
+    label_filtered = []
+    for run_idx, run_labels in enumerate(labels):
+        label_filtered_run = []
+        for node_idx, node_labels in enumerate(run_labels):
+            label_filtered_run.append(all_runs_preds[run_idx, node_idx, node_labels])
+        label_filtered.append(label_filtered_run)
+    all_runs_preds = np.array(label_filtered)
+    return all_runs_preds
+
+
 # data utility functions
 def sample_edge_idx(nodes):
     n = np.random.choice(range(len(nodes)-1), 2)

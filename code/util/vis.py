@@ -97,16 +97,15 @@ def plot_cf(clf, xt, yt, fname, dirname):
     return cf_mat
 
 
-def plot_heatmap(data, fname, xticklabels='auto', dirname):
-    plt.figure(figsize=(11, 7))
-    plt.clf()
+def plot_heatmap(data, fname, dirname, xticklabels='auto', figsize=(11, 7)):
+    fig = plt.figure(figsize=figsize)
     ax = sns.heatmap(data)
     ax.set_xticklabels(xticklabels, rotation=30)
     plt.xlabel = 'Edge label'
     plt.ylabel = 'Run number'
     plt.savefig(path.join(dirname, 'hm_' + fname))
-    plt.close()
-    return ''
+
+    return fig
 
 
 def plot_metrics(clf, xt, yt, fname, dirname):
