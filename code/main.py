@@ -4,8 +4,7 @@ from s2v import S2VModel
 
 # utility
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+
 # import data_util as du
 from util import data_util
 from util import file_util
@@ -33,14 +32,15 @@ def run(args):
     run_dir = file_util.create_run_dir(results_dir=args.results_dir)
     args.run_dir = run_dir
     data_util.save_params(args, path.join(run_dir, 'data', 'params_run.bin'))
-    # run = pd.DataFrame()
 
     # load data
     print(f'== LOADING DATA FROM {args.input_data} ==')
     data = data_util.load_edge_list(args.input_data)
 
     # add noise, and save modified data
-    train_data, missing, spurious = data_util.add_noise(data)
+    n_missing_edges = args.n_missing_edges
+    n_spurious_edges = args.n_spurious_edges
+    train_data, missing, spurious = data_util.add_noise(data, n_missing_edges, n_spurious_edges)
     data_util.write_edge_list(train_data, path.join(run_dir, 'data', 'train_data.edgelist'))
     data_util.write_pickle(missing.tolist(), path.join(run_dir, 'data', 'missing.bin'))
     data_util.write_pickle(spurious.tolist(), path.join(run_dir, 'data', 'spurious.bin'))
@@ -107,7 +107,7 @@ def run(args):
 
     # save model binary
     model.save_model(path.join(run_dir, 'model_output', 'model.bin'))
-
+    print("== FINISHED ==")
     return
 
 if __name__ == "__main__":

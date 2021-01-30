@@ -11,9 +11,11 @@ class Parameters:
     load_model_fname = None
     num_neg_samples_clf = None
     num_neg_samples_score = None
+    n_missing_edges = 1
+    n_spurious_edges = 1
 
     def __init__(self, params):
-        for k,v in params.items():
+        for k, v in params.items():
             setattr(self, k, v)
 
 
@@ -65,6 +67,15 @@ def parameters_cmdline():
                         type=int,
                         default=None,
                         help='Number of negative examples that are sampled to score the classifier')
+
+    parser.add_argument('--n_missing_edges',
+                        type=int,
+                        default=2,
+                        help='Number of edges removed to create noise')
+    parser.add_argument('--n_spurious_edges',
+                        type=int,
+                        default=2,
+                        help='Number of edges added to create noise')
     
     return parser.parse_args()
 

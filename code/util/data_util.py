@@ -90,7 +90,7 @@ def data_to_2d(data):
     return data2d
 
 
-def add_noise(data, n_remove=50, n_add=50):
+def add_noise(data, n_missing_edges=50, n_spurious_edges=50):
     """
     @data: networkx graph
     """
@@ -98,13 +98,13 @@ def add_noise(data, n_remove=50, n_add=50):
 
     # missing edges
     edges = np.array(data.edges)
-    r_idx = np.random.choice(range(len(edges)-1), n_remove)
+    r_idx = np.random.choice(range(len(edges)-1), n_missing_edges)
     missing_edges = np.array(edge_list2edge_tuple(edges[r_idx]))
     new_data.remove_edges_from(missing_edges)
 
     # spurious edges
     nodes = np.array(data.nodes)
-    a_idx = np.random.choice(range(len(nodes)-1), n_add * 2)
+    a_idx = np.random.choice(range(len(nodes)-1), n_spurious_edges * 2)
     it = iter(nodes[a_idx])
     spurious_edges = np.array([(edge, next(it)) for edge in it])
     for i in range(0, len(a_idx), 2):
