@@ -60,7 +60,7 @@ def data_to_2d(data):
     if data.shape[1] == 2:
         data2d = data
     else:
-        tsne = TSNE(random_state=0, n_iter=000, metric='cosine')
+        tsne = TSNE(random_state=0, n_iter=5000, metric='cosine')
         data2d = tsne.fit_transform(data)
     return data2d
 
