@@ -1,17 +1,19 @@
 import argparse
 
 
-    class Parameters:
-        input_data = 'data/tissue_int.edgelist'
-        train_data_output = 'train_tissue_int.edgelist'
-        results_dir = 'results'
-        embed_dim = 10
-        show_vis = False
-        model_type = 'n2v'
-        load_model_fname = None
+class Parameters:
+    input_data = 'data/tissue_int.edgelist'
+    train_data_output = 'train_tissue_int.edgelist'
+    results_dir = 'results'
+    embed_dim = 10
+    show_vis = False
+    model_type = 'n2v'
+    load_model_fname = None
+    num_neg_samples_clf = None
+    num_neg_samples_score = None
 
-        def __init__(self, params):
-            for k,v in params.items():
+    def __init__(self, params):
+        for k,v in params.items():
             setattr(self, k, v)
 
 
@@ -53,6 +55,17 @@ def parameters_cmdline():
                         nargs='?',
                         default=None,
                         help='Embeddings path')
+
+    parser.add_argument('--num_neg_samples_clf',
+                        type=int,
+                        default=None,
+                        help='Number of negative examples that are sampled to fit the classifier')
+
+    parser.add_argument('--num_neg_samples_score',
+                        type=int,
+                        default=None,
+                        help='Number of negative examples that are sampled to score the classifier')
+    
     return parser.parse_args()
 
 

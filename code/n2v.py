@@ -122,13 +122,15 @@ class N2VModel ():
         feats = np.array(feats)
         return edge_names, feats
 
-    def fit(self, data):
+    def fit(self, data, num_samples=None):
         """
         @data: networkx graph
         """
         # fit classifier
         # sample balanced classes
         n_data_edges = len(data.edges)
+        if num_samples is None:
+            num_samples = n_data_edges
         feats = []
         labels = np.zeros(n_data_edges * 2)
         labels[:n_data_edges] = 1
@@ -136,7 +138,7 @@ class N2VModel ():
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
         keys = self.nodes.vocab.keys()
-        neg_edge_names, neg_feats  = self.negative_sample(n_data_edges, data, keys)
+        neg_edge_names, neg_feats  = self.negative_sample(num_samples, data, keys)
         feats = np.vstack((feats, neg_feats))
         self.clf, self.scaler = classify(feats, labels)
 

@@ -70,13 +70,13 @@ def run(args):
     for i in range(20):
         # print(f"==== BOOTSTRAP {i} ====")
         # fit and save negative samples
-        neg_edge_names, negative_samples = model.fit(train_data)
+        neg_edge_names, negative_samples = model.fit(train_data, num_samples=args.num_neg_samples_clf)
         fit_negative_samples.append(
             [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
         )
         # print("FIT DONE")
         # score edges and save predictions and negative samples
-        all_preds, all_labels, neg_edge_names, neg_samples = model.score_negative_sampling(data)
+        all_preds, all_labels, neg_edge_names, neg_samples = model.score_negative_sampling(data, num_samples=args.num_neg_samples_score)
         edge_names = list(data.edges) + neg_edge_names
         # print("SCORE DONE")
         stuff = [(edge_name, preds, label) for edge_name, preds, label in zip(edge_names, all_preds, all_labels)]
@@ -107,17 +107,6 @@ def run(args):
 
     # save model binary
     model.save_model(path.join(run_dir, 'model_output', 'model.bin'))
-    # # only save how correct the predictions are
-    # # so for missing predictions how probable is class 1
-    # # and for spurious predictions how probable is class 0
-    # runs_mat_missing = np.array(bootstrap_preds_missing)[:, :, 1]
-    # runs_mat_spurious = np.array(bootstrap_preds_spurious)[:, :,  0]
-
-    # # convert missing and spurious to index labels for heatmap
-    # missing_indices = data_util.tuple2edge_str(missing)
-    # data_util.plot_heatmap(runs_mat_missing, fname=f'{args.model_type}_emb_missing.png', xticklabels=missing_indices)
-    # spurious_indices = data_util.tuple2edge_str(spurious)
-    # data_util.plot_heatmap(runs_mat_spurious, fname=f'{args.model_type}_emb_spurious.png', xticklabels=spurious_indices)
 
     return
 
