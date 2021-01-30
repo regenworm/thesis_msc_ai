@@ -32,7 +32,7 @@ def run(args):
     # create run results directory and save metadata
     run_dir = file_util.create_run_dir(results_dir=args.results_dir)
     args.run_dir = run_dir
-    # run_metadata = pd.DataFrame(data=args)
+    data_util.save_params(args, path.join(run_dir, 'data', 'params_run.bin'))
     # run = pd.DataFrame()
 
     # load data
@@ -42,8 +42,8 @@ def run(args):
     # add noise, and save modified data
     train_data, missing, spurious = data_util.add_noise(data)
     data_util.write_edge_list(train_data, path.join(run_dir, 'data', 'train_data.edgelist'))
-    data_util.write_pickle(missing.tolist(), path.join(run_dir, 'data', 'missing.npy'))
-    data_util.write_pickle(spurious.tolist(), path.join(run_dir, 'data', 'spurious.npy'))
+    data_util.write_pickle(missing.tolist(), path.join(run_dir, 'data', 'missing.bin'))
+    data_util.write_pickle(spurious.tolist(), path.join(run_dir, 'data', 'spurious.bin'))
 
     # train model
     # generates embeddings
@@ -99,11 +99,11 @@ def run(args):
         )
         # print("SAVE MS DONE")
 
-    data_util.write_pickle(bootstrap_preds_missing, path.join(run_dir, 'data', 'bootstrap_preds_missing.npy'))
-    data_util.write_pickle(bootstrap_preds_spurious, path.join(run_dir, 'data', 'bootstrap_preds_spurious.npy'))
-    data_util.write_pickle(bootstrap_preds_all, path.join(run_dir, 'data', 'bootstrap_preds_all.npy'))
-    data_util.write_pickle(fit_negative_samples, path.join(run_dir, 'data', 'fit_negative_samples.npy'))
-    data_util.write_pickle(score_negative_samples, path.join(run_dir, 'data', 'score_negative_samples.npy'))
+    data_util.write_pickle(bootstrap_preds_missing, path.join(run_dir, 'data', 'bootstrap_preds_missing.bin'))
+    data_util.write_pickle(bootstrap_preds_spurious, path.join(run_dir, 'data', 'bootstrap_preds_spurious.bin'))
+    data_util.write_pickle(bootstrap_preds_all, path.join(run_dir, 'data', 'bootstrap_preds_all.bin'))
+    data_util.write_pickle(fit_negative_samples, path.join(run_dir, 'data', 'fit_negative_samples.bin'))
+    data_util.write_pickle(score_negative_samples, path.join(run_dir, 'data', 'score_negative_samples.bin'))
 
     # save model binary
     model.save_model(path.join(run_dir, 'model_output', 'model.bin'))

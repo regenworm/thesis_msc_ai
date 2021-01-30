@@ -10,6 +10,31 @@ import re
 from copy import deepcopy
 
 # IO functions
+def save_params(args, fname):
+    param_array = []
+    input_data = args.input_data
+    train_data_output = args.train_data_output
+    results_dir = args.results_dir
+    embed_dim = args.embed_dim
+    show_vis = args.show_vis
+    model_type = args.model_type
+    load_model_fname = args.load_model_fname
+    param_array.append(('input_data', input_data))
+    param_array.append(('train_data_output', train_data_output))
+    param_array.append(('results_dir', results_dir))
+    param_array.append(('embed_dim', embed_dim))
+    param_array.append(('show_vis', show_vis))
+    param_array.append(('model_type', model_type))
+    param_array.append(('load_model_fname', load_model_fname))
+
+    write_pickle(param_array, fname)
+
+
+def read_params(fname):
+    params_array = read_pickle(fname)
+    return dict(params_array)
+
+
 def load_edge_list(fname):
     return nx.read_edgelist(fname)
 
