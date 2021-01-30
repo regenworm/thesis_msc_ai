@@ -1,7 +1,6 @@
 import argparse
 
 
-def parameters_notebook(params):
     class Parameters:
         input_data = 'data/tissue_int.edgelist'
         train_data_output = 'train_tissue_int.edgelist'
@@ -13,8 +12,10 @@ def parameters_notebook(params):
 
         def __init__(self, params):
             for k,v in params.items():
-                self[k] = v
+            setattr(self, k, v)
 
+
+def parameters_notebook(params):
     return Parameters(params)
 
 
