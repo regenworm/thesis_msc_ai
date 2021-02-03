@@ -88,15 +88,18 @@ def run(args):
         )
         # print("SAVE DONE")
         # score missing and spurious
-        preds_missing = model.score(missing)
-        # print("SCORE MS DONE")
-        bootstrap_preds_missing.append(
-            [(edge_name, preds, label) for edge_name, preds, label in zip(missing, preds_missing, np.ones(len(missing)))]
-        )
-        preds_spurious = model.score(spurious)
-        bootstrap_preds_spurious.append(
-            [(edge_name, preds, label) for edge_name, preds, label in zip(spurious, preds_spurious, np.zeros(len(spurious)))]
-        )
+        if int(args.n_missing_edges) > 0:
+            preds_missing = model.score(missing)
+            # print("SCORE MS DONE")
+            bootstrap_preds_missing.append(
+                [(edge_name, preds, label) for edge_name, preds, label in zip(missing, preds_missing, np.ones(len(missing)))]
+            )
+
+        if int(args.n_spurious_edges) > 0:
+            preds_spurious = model.score(spurious)
+            bootstrap_preds_spurious.append(
+                [(edge_name, preds, label) for edge_name, preds, label in zip(spurious, preds_spurious, np.zeros(len(spurious)))]
+            )
         # print("SAVE MS DONE")
 
     data_util.write_pickle(bootstrap_preds_missing, path.join(run_dir, 'data', 'bootstrap_preds_missing.bin'))
@@ -107,7 +110,7 @@ def run(args):
 
     # save model binary
     model.save_model(path.join(run_dir, 'model_output', 'model.bin'))
-    print("== FINISHED ==")
+    print(f"== FINISHED, SAVED RUN: {run_dir} ==")
     return
 
 if __name__ == "__main__":
