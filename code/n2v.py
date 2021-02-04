@@ -10,7 +10,7 @@ from classifier import classify
 import pickle
 
 # utility
-import data_util as du
+from util import data_util as du
 from sklearn.metrics import f1_score
 import numpy as np
 
@@ -132,7 +132,7 @@ class N2VModel ():
         if num_samples is None:
             num_samples = n_data_edges
         feats = []
-        labels = np.zeros(n_data_edges * 2)
+        labels = np.zeros(n_data_edges + num_samples)
         labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
@@ -176,32 +176,25 @@ class N2VModel ():
         preds = self.clf.predict_proba(feats)
         return preds
 
-    def score_negative_sampling(self, data, num_samples=None):
+    def score_negative_sampling(self, data, neg_edge_names):
         """
         get score for label prediction of data with negative sampling
         """
         n_data_edges = len(data.edges)
-        # if not set, sample as many negative edges as there are positive
-        if num_samples is None:
-            num_samples = n_data_edges
+        n_neg_samples = len(neg_edge_names)
 
         # gen labels
-        all_labels = np.zeros(n_data_edges + num_samples)
+        all_labels = np.zeros(n_data_edges + n_neg_samples)
         all_labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
         true_pos_samples = self.scaler.transform(self.get_feature_vectors(data.edges))
-
-
-        # get negative samples
-        keys = self.ee_kv.vocab.keys()
-        neg_edge_names, neg_feats = self.negative_sample(num_samples, data, keys)
-        neg_samples = self.scaler.transform(neg_feats)
+        neg_samples = self.scaler.transform(self.get_feature_vectors(neg_edge_names))
 
         # predict
         all_samples = np.vstack((true_pos_samples, neg_samples))
         all_samples_predict = self.clf.predict_proba(all_samples)
-        return all_samples_predict, all_labels, neg_edge_names, neg_samples
+        return all_samples_predict, all_labels
 
     def score(self, data):
         """

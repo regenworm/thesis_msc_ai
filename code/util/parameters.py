@@ -14,6 +14,21 @@ class Parameters:
     n_missing_edges = 1
     n_spurious_edges = 1
 
+    # def to_dict(self):
+    #     params_dict = {}
+    #     params_dict['input_data'] = self.input_data
+    #     params_dict['train_data_output'] = self.train_data_output
+    #     params_dict['results_dir'] = self.results_dir
+    #     params_dict['embed_dim'] = self.embed_dim
+    #     params_dict['show_vis'] = self.show_vis
+    #     params_dict['model_type'] = self.model_type
+    #     params_dict['load_model_fname'] = self.load_model_fname
+    #     params_dict['num_neg_samples_clf'] = self.num_neg_samples_clf
+    #     params_dict['num_neg_samples_score'] = self.num_neg_samples_score
+    #     params_dict['n_missing_edges'] = self.n_missing_edges
+    #     params_dict['n_spurious_edges'] = self.n_spurious_edges
+    #     return params_dict
+
     def __init__(self, params):
         for k, v in params.items():
             setattr(self, k, v)
@@ -70,11 +85,11 @@ def parameters_cmdline():
 
     parser.add_argument('--n_missing_edges',
                         type=int,
-                        default=2,
+                        default=1,
                         help='Number of edges removed to create noise')
     parser.add_argument('--n_spurious_edges',
                         type=int,
-                        default=2,
+                        default=1,
                         help='Number of edges added to create noise')
     
     return parser.parse_args()

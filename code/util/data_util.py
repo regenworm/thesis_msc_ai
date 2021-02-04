@@ -19,6 +19,11 @@ def save_params(args, fname):
     show_vis = args.show_vis
     model_type = args.model_type
     load_model_fname = args.load_model_fname
+    num_neg_samples_clf = args.num_neg_samples_clf
+    num_neg_samples_score = args.num_neg_samples_score
+    n_missing_edges = args.n_missing_edges
+    n_spurious_edges = args.n_spurious_edges
+    
     param_array.append(('input_data', input_data))
     param_array.append(('train_data_output', train_data_output))
     param_array.append(('results_dir', results_dir))
@@ -26,6 +31,10 @@ def save_params(args, fname):
     param_array.append(('show_vis', show_vis))
     param_array.append(('model_type', model_type))
     param_array.append(('load_model_fname', load_model_fname))
+    param_array.append(('num_neg_samples_clf', num_neg_samples_clf))
+    param_array.append(('num_neg_samples_score', num_neg_samples_score))
+    param_array.append(('n_missing_edges', n_missing_edges))
+    param_array.append(('n_spurious_edges', n_spurious_edges))
 
     write_pickle(param_array, fname)
 
@@ -135,6 +144,7 @@ def edge_list2edge_tuple(edges):
 def unpack_values(all_runs_predicions):
     unpacked_preds = []
     unpacked_labels = []
+    # unpacked_edge_names = []
     for bootstrap in all_runs_predicions:
         run_preds = []
         run_labels = []
@@ -147,7 +157,24 @@ def unpack_values(all_runs_predicions):
 
         unpacked_preds.append(run_preds)
         unpacked_labels.append(run_labels)
+        # unpacked_edge_names.append(run_edge_names)
     return np.array(unpacked_preds), run_edge_names, unpacked_labels
+
+
+def unpack_neg_samples(all_runs_predicions):
+    unpacked_edge_names = []
+    unpacked_embeddings = []
+    for bootstrap in all_runs_predicions:
+        run_embs = []
+        run_edge_names = []
+
+        for edge_name, emb in bootstrap:
+            run_edge_names.append(edge_name)
+            run_embs.append(emb)
+
+        unpacked_edge_names.append(run_edge_names)
+        unpacked_embeddings.append(run_embs)
+    return unpacked_edge_names, unpacked_embeddings
 
 
 def filter_preds_by_label(all_runs_preds, labels):

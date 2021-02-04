@@ -65,32 +65,34 @@ def run(args):
     # collect list of tuples with (index of embedding, embedding)
     fit_negative_samples = []
     score_negative_samples = []
+
+    # test each bootstrap run on the same negative samples
+    # generate negative samples and save these in an array
+    keys = model.ee_kv.vocab.keys()
+    score_neg_edge_names, score_neg_feats = model.negative_sample(args.num_neg_samples_clf, data, keys)
+    score_negative_samples.append(
+        [(idx, emb) for idx, emb in zip(score_neg_edge_names, score_neg_feats)]
+    )
+
     print("== STARTING BOOTSTRAP ==")
     # do bootstrappping
     for i in range(20):
-        # print(f"==== BOOTSTRAP {i} ====")
         # fit and save negative samples
-        neg_edge_names, negative_samples = model.fit(train_data, num_samples=args.num_neg_samples_clf)
+        fit_run_neg_edge_names, fit_run_neg_samples = model.fit(train_data)
         fit_negative_samples.append(
-            [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
+            [(idx, emb) for idx, emb in zip(fit_run_neg_edge_names, fit_run_neg_samples)]
         )
-        # print("FIT DONE")
+
         # score edges and save predictions and negative samples
-        all_preds, all_labels, neg_edge_names, neg_samples = model.score_negative_sampling(data, num_samples=args.num_neg_samples_score)
-        edge_names = list(data.edges) + neg_edge_names
-        # print("SCORE DONE")
-        stuff = [(edge_name, preds, label) for edge_name, preds, label in zip(edge_names, all_preds, all_labels)]
+        all_preds, all_labels = model.score_negative_sampling(data, score_neg_edge_names)
+        edge_names = list(data.edges) + score_neg_edge_names
         bootstrap_preds_all.append(
-            stuff
+            [(edge_name, preds, label) for edge_name, preds, label in zip(edge_names, all_preds, all_labels)]
         )
-        score_negative_samples.append(
-            [(idx, emb) for idx, emb in zip(neg_edge_names, negative_samples)]
-        )
-        # print("SAVE DONE")
+
         # score missing and spurious
         if int(args.n_missing_edges) > 0:
             preds_missing = model.score(missing)
-            # print("SCORE MS DONE")
             bootstrap_preds_missing.append(
                 [(edge_name, preds, label) for edge_name, preds, label in zip(missing, preds_missing, np.ones(len(missing)))]
             )
@@ -100,7 +102,6 @@ def run(args):
             bootstrap_preds_spurious.append(
                 [(edge_name, preds, label) for edge_name, preds, label in zip(spurious, preds_spurious, np.zeros(len(spurious)))]
             )
-        # print("SAVE MS DONE")
 
     data_util.write_pickle(bootstrap_preds_missing, path.join(run_dir, 'data', 'bootstrap_preds_missing.bin'))
     data_util.write_pickle(bootstrap_preds_spurious, path.join(run_dir, 'data', 'bootstrap_preds_spurious.bin'))
