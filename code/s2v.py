@@ -79,13 +79,19 @@ class S2VModel():
         feats = []
         edge_names = []
         # negative samples
-        for i in range(n_edges):
+        iterations = list(range(n_edges))
+        for i in iterations:
             edge, r_edge = du.sample_edge_idx(data.nodes)
 
             feat_vec = self.get_embedding(edge, keys)
-            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
-                i -= 1
-                continue
+            if du.check_directed(data):
+                if (feat_vec is -1) or (edge in data.edges):
+                    iterations.append(n_edges)
+                    continue
+            else:
+                if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+                    iterations.append(n_edges)
+                    continue
             feats.append(feat_vec)
             edge_names.append(edge)
 
@@ -146,32 +152,25 @@ class S2VModel():
         preds = self.clf.predict_proba(feats)
         return preds
 
-    def score_negative_sampling(self, data, num_samples=None):
+    def score_negative_sampling(self, data, neg_edge_names):
         """
         get score for label prediction of data with negative sampling
         """
         n_data_edges = len(data.edges)
-        # if not set, sample as many negative edges as there are positive
-        if num_samples is None:
-            num_samples = n_data_edges
+        n_neg_samples = len(neg_edge_names)
 
         # gen labels
-        all_labels = np.zeros(n_data_edges + num_samples)
+        all_labels = np.zeros(n_data_edges + n_neg_samples)
         all_labels[:n_data_edges] = 1
 
         # for each edge in data, get feature vector
         true_pos_samples = self.scaler.transform(self.get_feature_vectors(data.edges))
-
-
-        # get negative samples
-        keys = self.ee_kv.vocab.keys()
-        neg_edge_names, neg_feats = self.negative_sample(num_samples, data, keys)
-        neg_samples = self.scaler.transform(neg_feats)
+        neg_samples = self.scaler.transform(self.get_feature_vectors(neg_edge_names))
 
         # predict
         all_samples = np.vstack((true_pos_samples, neg_samples))
         all_samples_predict = self.clf.predict_proba(all_samples)
-        return all_samples_predict, all_labels, neg_edge_names, neg_samples
+        return all_samples_predict, all_labels
 
     def score(self, data):
         """
