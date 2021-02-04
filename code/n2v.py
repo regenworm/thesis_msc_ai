@@ -109,13 +109,19 @@ class N2VModel ():
         feats = []
         edge_names = []
         # negative samples
-        for i in range(n_edges):
+        iterations = list(range(n_edges))
+        for i in iterations:
             edge, r_edge = du.sample_edge_idx(data.nodes)
 
             feat_vec = self.get_embedding(edge, keys)
-            if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
-                i -= 1
-                continue
+            if du.check_directed(data):
+                if (feat_vec is -1) or (edge in data.edges):
+                    iterations.append(n_edges)
+                    continue
+            else:
+                if (feat_vec is -1) or (edge in data.edges) or (r_edge in data.edges):
+                    iterations.append(n_edges)
+                    continue
             feats.append(feat_vec)
             edge_names.append(edge)
 

@@ -35,7 +35,8 @@ def run(args):
 
     # load data
     print(f'== LOADING DATA FROM {args.input_data} ==')
-    data = data_util.load_edge_list(args.input_data)
+    print(bool(args.directed))
+    data = data_util.load_edge_list(args.input_data, bool(args.directed))
 
     # add noise, and save modified data
     n_missing_edges = args.n_missing_edges
@@ -69,7 +70,7 @@ def run(args):
     # test each bootstrap run on the same negative samples
     # generate negative samples and save these in an array
     keys = model.ee_kv.vocab.keys()
-    score_neg_edge_names, score_neg_feats = model.negative_sample(args.num_neg_samples_clf, data, keys)
+    score_neg_edge_names, score_neg_feats = model.negative_sample(args.num_neg_samples_score, data, keys)
     score_negative_samples.append(
         [(idx, emb) for idx, emb in zip(score_neg_edge_names, score_neg_feats)]
     )
@@ -78,7 +79,7 @@ def run(args):
     # do bootstrappping
     for i in range(20):
         # fit and save negative samples
-        fit_run_neg_edge_names, fit_run_neg_samples = model.fit(train_data)
+        fit_run_neg_edge_names, fit_run_neg_samples = model.fit(train_data, num_samples=args.num_neg_samples_fit)
         fit_negative_samples.append(
             [(idx, emb) for idx, emb in zip(fit_run_neg_edge_names, fit_run_neg_samples)]
         )

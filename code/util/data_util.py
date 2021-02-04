@@ -19,10 +19,11 @@ def save_params(args, fname):
     show_vis = args.show_vis
     model_type = args.model_type
     load_model_fname = args.load_model_fname
-    num_neg_samples_clf = args.num_neg_samples_clf
+    num_neg_samples_fit = args.num_neg_samples_fit
     num_neg_samples_score = args.num_neg_samples_score
     n_missing_edges = args.n_missing_edges
     n_spurious_edges = args.n_spurious_edges
+    directed = args.directed
     
     param_array.append(('input_data', input_data))
     param_array.append(('train_data_output', train_data_output))
@@ -31,10 +32,11 @@ def save_params(args, fname):
     param_array.append(('show_vis', show_vis))
     param_array.append(('model_type', model_type))
     param_array.append(('load_model_fname', load_model_fname))
-    param_array.append(('num_neg_samples_clf', num_neg_samples_clf))
+    param_array.append(('num_neg_samples_fit', num_neg_samples_fit))
     param_array.append(('num_neg_samples_score', num_neg_samples_score))
     param_array.append(('n_missing_edges', n_missing_edges))
     param_array.append(('n_spurious_edges', n_spurious_edges))
+    param_array.append(('directed', directed))
 
     write_pickle(param_array, fname)
 
@@ -44,8 +46,12 @@ def read_params(fname):
     return dict(params_array)
 
 
-def load_edge_list(fname):
-    return nx.read_edgelist(fname)
+def load_edge_list(fname, directed):
+    if directed:
+        G = nx.DiGraph()
+    else:
+        G = nx.Graph()
+    return nx.read_edgelist(fname, create_using=G)
 
 
 def write_edge_list(graph, fname):
@@ -120,8 +126,9 @@ def add_noise(data, n_missing_edges=50, n_spurious_edges=50):
         new_data.add_edges_from(spurious_edges)
 
     # ensure connected
-    edges = list(nx.k_edge_augmentation(new_data, 1))
-    new_data.add_edges_from(edges)
+    if not nx.is_directed(new_data):
+        edges = list(nx.k_edge_augmentation(new_data, 1))
+        new_data.add_edges_from(edges)
 
     return new_data, missing_edges, spurious_edges
 
@@ -192,4 +199,7 @@ def filter_preds_by_label(all_runs_preds, labels):
 # data utility functions
 def sample_edge_idx(nodes):
     n = np.random.choice(range(len(nodes)-1), 2)
-    return f"('{n[0]}', '{n[1]}')", f"('{n[1]}', '{n[0]}')"
+    return (str(n[0]), str(n[1])),  (str(n[1]), str(n[0]))
+
+def check_directed(graph):
+    return nx.is_directed(graph)
