@@ -14,6 +14,9 @@ class Parameters:
     n_missing_edges = 1
     n_spurious_edges = 1
     directed = False
+    generate_data = False
+    gen_data_nodes = 200
+    gen_data_edges = 300
 
     # def to_dict(self):
     #     params_dict = {}
@@ -98,6 +101,21 @@ def parameters_cmdline():
                         type=bool,
                         default=False,
                         help='Number of edges added to create noise')
+
+    parser.add_argument('--generate_data',
+                        dest='generate_data',
+                        default=False,
+                        action='store_true')
+
+    parser.add_argument('--gen_data_nodes',
+                        type=int,
+                        default=200,
+                        help='When generating data, number of nodes that should be generated. Default is 200.')
+
+    parser.add_argument('--gen_data_edges',
+                        type=int,
+                        default=300,
+                        help='When generating data, number of edges that should be generated. Default is 300.')
     
     return parser.parse_args()
 

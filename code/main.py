@@ -28,15 +28,22 @@ def train_model(data, model_type, embed_dim):
 
 
 def run(args):
-    # create run results directory and save metadata
+    # create directory to save data for this run
     run_dir = file_util.create_run_dir(results_dir=args.results_dir)
     args.run_dir = run_dir
-    data_util.save_params(args, path.join(run_dir, 'data', 'params_run.bin'))
 
     # load data
     print(f'== LOADING DATA FROM {args.input_data} ==')
-    print(bool(args.directed))
-    data = data_util.load_edge_list(args.input_data, bool(args.directed))
+    if args.generate_data:
+        data_fname = path.join(run_dir, 'data', 'generated_data.bin')
+        data = data_util.simulate_data(args.gen_data_nodes, args.gen_data_edges)
+        data_util.write_edge_list(data, data_fname)
+        args.input_data = data_fname
+    else:
+        data = data_util.load_edge_list(args.input_data, bool(args.directed))
+
+    # save metadata
+    data_util.save_params(args, path.join(run_dir, 'data', 'params_run.bin'))
 
     # add noise, and save modified data
     n_missing_edges = args.n_missing_edges
