@@ -9,29 +9,17 @@ class Parameters:
     show_vis = False
     model_type = 'n2v'
     load_model_fname = None
-    num_neg_samples_fit = None
-    num_neg_samples_score = None
+    num_neg_samples_fit = 500
+    num_neg_samples_score = 500
     n_missing_edges = 1
     n_spurious_edges = 1
     directed = False
     generate_data = False
+    gen_data_type = 'barabasi'
     gen_data_nodes = 200
-    gen_data_edges = 300
-
-    # def to_dict(self):
-    #     params_dict = {}
-    #     params_dict['input_data'] = self.input_data
-    #     params_dict['train_data_output'] = self.train_data_output
-    #     params_dict['results_dir'] = self.results_dir
-    #     params_dict['embed_dim'] = self.embed_dim
-    #     params_dict['show_vis'] = self.show_vis
-    #     params_dict['model_type'] = self.model_type
-    #     params_dict['load_model_fname'] = self.load_model_fname
-    #     params_dict['num_neg_samples_fit'] = self.num_neg_samples_fit
-    #     params_dict['num_neg_samples_score'] = self.num_neg_samples_score
-    #     params_dict['n_missing_edges'] = self.n_missing_edges
-    #     params_dict['n_spurious_edges'] = self.n_spurious_edges
-    #     return params_dict
+    gen_data_edges = 2
+    gen_data_alpha = 0.41
+    gen_data_beta = 0.54
 
     def __init__(self, params):
         for k, v in params.items():
@@ -79,12 +67,12 @@ def parameters_cmdline():
 
     parser.add_argument('--num_neg_samples_fit',
                         type=int,
-                        default=None,
+                        default=500,
                         help='Number of negative examples that are sampled to fit the classifier')
 
     parser.add_argument('--num_neg_samples_score',
                         type=int,
-                        default=None,
+                        default=500,
                         help='Number of negative examples that are sampled to score the classifier')
 
     parser.add_argument('--n_missing_edges',
@@ -106,6 +94,11 @@ def parameters_cmdline():
                         dest='generate_data',
                         default=False,
                         action='store_true')
+    
+    parser.add_argument('--gen_data_type',
+                        type=str,
+                        default='n2v',
+                        choices=['barabasi', 'scale_free'])
 
     parser.add_argument('--gen_data_nodes',
                         type=int,
@@ -114,9 +107,18 @@ def parameters_cmdline():
 
     parser.add_argument('--gen_data_edges',
                         type=int,
-                        default=300,
-                        help='When generating data, number of edges that should be generated. Default is 300.')
+                        default=2,
+                        help='When generating data, number of edges that should be attached to a node. Default is 2.')
     
+    parser.add_argument('--gen_data_alpha',
+                        type=int,
+                        default=0.41,
+                        help='Networkx scale free generation alpha parameter. Default is 0.41.')
+
+    parser.add_argument('--gen_data_beta',
+                        type=int,
+                        default=0.54,
+                        help='Networkx scale free generation beta parameter. Default is 0.54.')
     return parser.parse_args()
 
 

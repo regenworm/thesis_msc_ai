@@ -208,6 +208,7 @@ class N2VModel ():
         @fname: output filename for plots
         @dirname: output folder for plots
         """
-        samples = self.scaler.transform(self.get_feature_vectors(data))
+        tuple_data = du.edge_list2edge_tuple(data)
+        samples = self.scaler.transform(self.get_feature_vectors(tuple_data))
         preds = self.clf.predict_proba(samples)
         return preds

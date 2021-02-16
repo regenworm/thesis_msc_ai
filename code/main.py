@@ -36,7 +36,7 @@ def run(args):
     print(f'== LOADING DATA FROM {args.input_data} ==')
     if args.generate_data:
         data_fname = path.join(run_dir, 'data', 'generated_data.bin')
-        data = data_util.simulate_data(args.gen_data_nodes, args.gen_data_edges)
+        data = data_util.generate_data_graph(args)
         data_util.write_edge_list(data, data_fname)
         args.input_data = data_fname
     else:
@@ -48,7 +48,10 @@ def run(args):
     # add noise, and save modified data
     n_missing_edges = args.n_missing_edges
     n_spurious_edges = args.n_spurious_edges
+    print('wegood')
     train_data, missing, spurious = data_util.add_noise(data, n_missing_edges, n_spurious_edges)
+    print('wegood2')
+
     data_util.write_edge_list(train_data, path.join(run_dir, 'data', 'train_data.edgelist'))
     data_util.write_pickle(missing.tolist(), path.join(run_dir, 'data', 'missing.bin'))
     data_util.write_pickle(spurious.tolist(), path.join(run_dir, 'data', 'spurious.bin'))

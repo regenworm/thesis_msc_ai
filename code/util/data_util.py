@@ -73,11 +73,18 @@ def read_embedding(fname):
 
 
 # data generation functions
-def simulate_data(n, m):
+def generate_data_graph(args):
     """
     returns networkx graph with n nodes
     """
-    graph = nx.barabasi_albert_graph(n, m)
+    if args.gen_data_type == 'barabasi':
+        graph = nx.barabasi_albert_graph(args.gen_data_nodes,
+                                         args.gen_data_edges)
+    else:
+        graph = nx.scale_free_graph(args.gen_data_nodes,
+                                    args.gen_data_alpha,
+                                    args.gen_data_beta)
+        args.directed = True
     return graph
 
 
@@ -112,16 +119,23 @@ def add_noise(data, n_missing_edges=50, n_spurious_edges=50):
     new_data = deepcopy(data)
 
     # missing edges
-    edges = np.array(data.edges)
+    # convert from [node, node, direction] format to [node1, node2] format
+    edges = np.array([edge[:2] if edge[2] == 0 else (edge[1], edge[0]) for edge in data.edges])
+    # randomly select edges to remove
     r_idx = np.random.choice(range(len(edges)-1), n_missing_edges)
+    # create edge tuples
     missing_edges = np.array(edge_list2edge_tuple(edges[r_idx]))
+    # remove from graph
     new_data.remove_edges_from(missing_edges)
 
     # spurious edges
     nodes = np.array(data.nodes)
+    # randomly select nodes to connect
     a_idx = np.random.choice(range(len(nodes)-1), n_spurious_edges * 2)
+    # iterate over selected nodes in pairs
     it = iter(nodes[a_idx])
     spurious_edges = np.array([(edge, next(it)) for edge in it])
+    # add edges to graph
     for i in range(0, len(a_idx), 2):
         new_data.add_edges_from(spurious_edges)
 
