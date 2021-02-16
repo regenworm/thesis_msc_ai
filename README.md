@@ -6,3 +6,6 @@ Elsevier is working in close collaboration with the Rochester General Hospital i
 References:
 [1]  Guimerà R, Sales-Pardo M. Missing and spurious interactions and the reconstruction of complex networks.Proc Natl Acad Sci U S A. 2009 Dec 29;106(52):22073-8.
 [2]  Alon U. Network motifs: theory and experimental approaches. Nat Rev Genet. 2007 Jun;8(6):450-61.
+
+
+[Project idea](./proposal.md)
