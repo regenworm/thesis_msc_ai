@@ -270,7 +270,7 @@ def embed_afterLSTM(corpus, emsize):
     :return: embedding vectors
     """
     dic = corpus.dictionary.word2idx.values()
-    dic = np.sort(dic)
+    dic = np.sort(list(dic))
     if ntokens <= EMBED_SEGMENT:
         dic = np.vstack((dic,dic))
         dic_to_embed = Variable(torch.from_numpy(dic))
@@ -306,7 +306,7 @@ def embed_afterLSTM(corpus, emsize):
 
 def embed_dic_for_loss(corpus, emsize):
     dic = corpus.dictionary.word2idx.values()
-    dic = np.sort(dic)
+    dic = np.sort(list(dic))
     if ntokens <= EMBED_SEGMENT:
         dic = np.vstack((dic,dic))
         dic_to_embed = Variable(torch.from_numpy(dic))
@@ -436,7 +436,7 @@ def train_gan_g():
     errG = gan_disc(fake_hidden)
 
     # loss / backprop
-    errG.backward(one)
+    errG.backward(one.reshape(errG.size()))
     optimizer_gan_g.step()
 
     return errG
@@ -484,7 +484,7 @@ def train_gan_d(batch):
 
     # loss / backprop
     errD_real = gan_disc(real_hidden)
-    errD_real.backward(one)
+    errD_real.backward(one.reshape(errD_real.size()))
 
     # negative samples ----------------------------
     # generate fake codes
@@ -495,7 +495,7 @@ def train_gan_d(batch):
     # loss / backprop
     fake_hidden = gan_gen(noise)
     errD_fake = gan_disc(fake_hidden.detach())
-    errD_fake.backward(mone)
+    errD_fake.backward(mone.reshape(errD_fake.size()))
 
     # `clip_grad_norm` to prvent exploding gradient problem in RNNs / LSTMs
     # This is the version of Wasserstein GAN, which has gradient clipping

@@ -271,8 +271,8 @@ class Seq2Seq(nn.Module):
         # hidden = torch.div(hidden, norms.expand_as(hidden))
 
         if noise and self.noise_radius > 0:
-            gauss_noise = torch.normal(means=torch.zeros(hidden.size()),
-                                       std=self.noise_radius)
+            gauss_noise = torch.normal(torch.zeros(hidden.size()),
+                                       self.noise_radius)
             hidden = hidden + to_gpu(self.gpu, Variable(gauss_noise))
 
         return hidden
