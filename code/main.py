@@ -63,7 +63,7 @@ def run(args):
     print(f'== TRAINING {args.model_type} MODEL  ==')
     model = train_model(train_data, args.model_type,
                         args.embed_dim, run_dir)
-    return
+
     # classify
     # fit classifier and test model
     print(f'== TESTING MODEL  ==')
@@ -81,8 +81,7 @@ def run(args):
 
     # test each bootstrap run on the same negative samples
     # generate negative samples and save these in an array
-    keys = model.ee_kv.vocab.keys()
-    score_neg_edge_names, score_neg_feats = model.negative_sample(args.num_neg_samples_score, data, keys)
+    score_neg_edge_names, score_neg_feats = model.negative_sample(args.num_neg_samples_score, data)
     score_negative_samples.append(
         [(idx, emb) for idx, emb in zip(score_neg_edge_names, score_neg_feats)]
     )

@@ -53,7 +53,7 @@ class S2VModel():
         self.ee_kv = edge_model.as_keyed_vectors()
         self.edges = self.ee_kv.vectors
 
-    def get_embedding(self, edge, keys):
+    def get_embedding(self, edge):
         edge = str(edge)
         n1, n2 = du.edge_str2tuple(edge)
         node1 = self.nodes[n1]
@@ -62,10 +62,9 @@ class S2VModel():
 
     def get_feature_vectors(self, edges):
         feats = []
-        keys = self.ee_kv.vocab.keys()
         # for each edge in data, get feature vector
         for edge in edges:
-            feat_vec = self.get_embedding(edge, keys)
+            feat_vec = self.get_embedding(edge)
 
             if feat_vec is -1:
                 print('Embedding not found')
@@ -75,7 +74,7 @@ class S2VModel():
         feats = np.array(feats)
         return feats
 
-    def negative_sample(self, n_edges, data, keys):
+    def negative_sample(self, n_edges, data):
         feats = []
         edge_names = []
         # negative samples
@@ -83,7 +82,7 @@ class S2VModel():
         for i in iterations:
             edge, r_edge = du.sample_edge_idx(data.nodes)
 
-            feat_vec = self.get_embedding(edge, keys)
+            feat_vec = self.get_embedding(edge)
             if du.check_directed(data):
                 if (feat_vec is -1) or (edge in data.edges):
                     iterations.append(n_edges)
@@ -113,8 +112,7 @@ class S2VModel():
 
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
-        keys = self.nodes.vocab.keys()
-        neg_edge_names, neg_feats  = self.negative_sample(num_samples, data, keys)
+        neg_edge_names, neg_feats  = self.negative_sample(num_samples, data)
         feats = np.vstack((feats, neg_feats))
         self.clf, self.scaler = classify(feats, labels)
 
@@ -123,7 +121,6 @@ class S2VModel():
     def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
         feats = []
-        keys = self.ee_kv.vocab.keys()
 
         # for each edge in data, get feature vector
         for edge in data.edges:
@@ -132,7 +129,7 @@ class S2VModel():
             edge = str(edge)
 
             # if edge found save
-            feat_vec = self.get_embedding(edge, keys)
+            feat_vec = self.get_embedding(edge)
             if feat_vec is -1:
                 print('Embedding not found')
                 continue
