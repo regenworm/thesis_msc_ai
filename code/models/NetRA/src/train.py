@@ -456,10 +456,10 @@ def train_netra(A_nx, seed, outputdir, embed_dim):
         noise.data.normal_(0, 1)
 
         fake_hidden = gan_gen(noise)
-        errG = gan_disc(fake_hidden)
+        errG = gan_disc(fake_hidden).reshape(one.size())
 
         # loss / backprop
-        errG.backward(one.reshape(errG.size()))
+        errG.backward(one)
         optimizer_gan_g.step()
 
         return errG
@@ -506,8 +506,8 @@ def train_netra(A_nx, seed, outputdir, embed_dim):
         real_hidden.register_hook(grad_hook)
 
         # loss / backprop
-        errD_real = gan_disc(real_hidden)
-        errD_real.backward(one.reshape(errD_real.size()))
+        errD_real = gan_disc(real_hidden).reshape(one.size())
+        errD_real.backward(one)
 
         # negative samples ----------------------------
         # generate fake codes
@@ -517,8 +517,8 @@ def train_netra(A_nx, seed, outputdir, embed_dim):
 
         # loss / backprop
         fake_hidden = gan_gen(noise)
-        errD_fake = gan_disc(fake_hidden.detach())
-        errD_fake.backward(mone.reshape(errD_fake.size()))
+        errD_fake = gan_disc(fake_hidden.detach()).reshape(mone.size())
+        errD_fake.backward(mone)
 
         # `clip_grad_norm` to prvent exploding gradient problem in RNNs / LSTMs
         # This is the version of Wasserstein GAN, which has gradient clipping
@@ -632,12 +632,11 @@ def train_netra(A_nx, seed, outputdir, embed_dim):
     # membership_path = "../data/membership.txt"
 
     # use last iteration output embeddings as code
-    embedding_path = os.path.join(outputdir, args.outf, "embed_afterLSTM_{}.txt")
+    embedding_path = os.path.join(outputdir, args.outf, "embed_afterLSTM_{}.txt".format(epoch))
 
     # viz_tsne(membership_path, embedding_path)
     # viz(membership_path, embedding_path)
     # save_model(outputdir, autoencoder, gan_gen, gan_disc)
-
     return read_embedding(embedding_path)
 
 
