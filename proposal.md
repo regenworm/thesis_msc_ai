@@ -12,7 +12,7 @@ Train embeddings and enhance performance of the model by adding features that ar
 ## IDEA 2: Regularized VAE
 Based on section VI B of comprehensive graph survey.  GraphVAE, Regularized GraphVAE, MolGAN, NetRA show a similar idea.
 
-*Network data -> Encoder with final softmax layer -> outputs vector in latent space -> decoder sequentially generate nodes and edges to construct local graph*
+*Network data -> Encoder with final softmax layer -> outputs vect†or in latent space -> decoder sequentially generate nodes and edges to construct local graph*
 
 *The encoder has a final softmax layer such that it can learn a classification which should hold across datasets.*
 
@@ -27,6 +27,8 @@ https://arxiv.org/pdf/1805.11973.pdf
 NetRA is very similar, figure 1 of their paper shows their architecture clearly (section 3.2 of their paper explains specifically about the regularization with the GAN structure). A GAN is used to regularize the encoder output so it is forced to learn useful information about the data.
 https://sites.cs.ucsb.edu/~bzong/doc/kdd-18.pdf
 
+
+What data will i use? I want the same genes/proteins in different datasets. 
 
 ### TODO
 - Is this architecture viable (latent dimension softmax vector -> decoder -> local graph), as it is similar to random graphs (node class determines connectivity). Possibly look at GraphVAE and MolGAN more closely, generate adjacency matrix, edge attributes, and node features. This would make using multiple datasets harder.
@@ -45,7 +47,19 @@ https://sites.cs.ucsb.edu/~bzong/doc/kdd-18.pdf
 
     I will do another search using one of the keywords (data integration) from one of these articles. Already gave a few possible relevant papers:
     - https://academic.oup.com/jamia/article/25/1/99/3826530?login=true
+        This paper somewhat interesting. The proposed approach is to multiply and sum the laplacian and optimum weight coefficient for each graph: I + \sum a_kS_k, \sum a_k \leq \mu
+        Could be applicable
     - https://academic.oup.com/bioinformatics/article/29/14/1830/232698?login=true
+        Visualization system not that interesting
+    - https://royalsocietypublishing.org/doi/full/10.1098/rsif.2015.0571
+        Number of different strategies: most interesting is intermediate data integration
+        - Using non negative matrix factorization - no intratype relations, no good
+        - Bayesian nets, no loops
+        - Kernel Based, maybe
+        - Embeddings, maybe
+
+
+
 
 
 # Method Evaluation
@@ -59,7 +73,16 @@ Data is a gene regulatory network, similar to protein interaction networks. Exam
 - Metabolic E Coli, Jeong et al 2000
 - Protein, S. cerev, Mason et al 2000
 
-## TODO
 - Read Reka Albert paper https://jcs.biologists.org/content/118/21/4947
+    Includes biological interpretation of features, e.g. path redundancy and modularity. Includes some guidelines for specific types of networks. Which type of network should i look at? Transcriptional regulation maps
+
+## TODO
 - Read Architecture paper https://link.springer.com/chapter/10.1007/978-0-387-33532-2_5
+- Look up papers Age Smilde, more recent data fusion
+- Update proposal
+- Upload to Elsevier
+- Look for newer version of NetRA
+- What is expected from the proposal
+- Full literature review for proposal
+- E-mail for gordon
 

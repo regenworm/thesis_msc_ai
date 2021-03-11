@@ -11,6 +11,21 @@ import matplotlib.pylab as pylab
 params = {'font.family': 'sans-serif', 'font.serif': 'Times'}
 pylab.rcParams.update(params)
 
+def read_embedding(embedding_path):
+    """
+    Read embeddings learned
+    :param embedding_path: embedding file of each node, each line is embedding of one nodes
+    :return:
+    """
+    embedding = {}
+    with open(embedding_path, 'r') as member:
+        # member.readline()
+        for line in member:
+            res = line.strip().split()
+            embedding[int(res[0])] = [float(res[1]), float(res[2])]
+    return embedding
+
+
 def viz(membership_path, embedding_path):
     """
     Visualizing graph given embeddings learned

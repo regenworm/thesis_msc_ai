@@ -58,7 +58,7 @@ def parameters_cmdline():
     parser.add_argument('--model_type',
                         type=str,
                         default='n2v',
-                        choices=['n2v', 's2v'])
+                        choices=['n2v', 's2v', 'netra'])
 
     parser.add_argument('--load_model_fname',
                         nargs='?',

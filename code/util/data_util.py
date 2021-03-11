@@ -117,10 +117,15 @@ def add_noise(data, n_missing_edges=50, n_spurious_edges=50):
     @data: networkx graph
     """
     new_data = deepcopy(data)
+    print('???')
 
     # missing edges
-    # convert from [node, node, direction] format to [node1, node2] format
-    edges = np.array([edge[:2] if edge[2] == 0 else (edge[1], edge[0]) for edge in data.edges])
+    if nx.is_directed(new_data):
+        # convert from [node, node, direction] format to [node1, node2] format
+        edges = np.array([(edge[0], edge[1]) if edge[2] == 0 else (edge[1], edge[0]) for edge in data.edges])
+    else:
+        edges = np.array([(edge[0], edge[1]) for edge in data.edges])
+
     # randomly select edges to remove
     r_idx = np.random.choice(range(len(edges)-1), n_missing_edges)
     # create edge tuples

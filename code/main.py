@@ -1,18 +1,17 @@
 # models
 from n2v import N2VModel
 from s2v import S2VModel
+from netra import NetRAModel
 
 # utility
 import numpy as np
 
 # import data_util as du
-from util import data_util
-from util import file_util
-from util import parameters
+from util import data_util, file_util, parameters
 from os import path
 
 
-def train_model(data, model_type, embed_dim):
+def train_model(data, model_type, embed_dim, outputdir):
     if model_type == 'n2v':
         nv_emb = N2VModel(embed_dim=embed_dim,
                           emb_name='l2',
@@ -25,6 +24,11 @@ def train_model(data, model_type, embed_dim):
                           c_idx=-1)
         sv_emb.gen_embeddings(data)
         return sv_emb
+    elif model_type == 'netra':
+        netra_emb = NetRAModel(embed_dim=embed_dim,
+                          c_idx=-1)
+        netra_emb.gen_embeddings(data, outputdir)
+        return netra_emb
 
 
 def run(args):
@@ -48,9 +52,7 @@ def run(args):
     # add noise, and save modified data
     n_missing_edges = args.n_missing_edges
     n_spurious_edges = args.n_spurious_edges
-    print('wegood')
     train_data, missing, spurious = data_util.add_noise(data, n_missing_edges, n_spurious_edges)
-    print('wegood2')
 
     data_util.write_edge_list(train_data, path.join(run_dir, 'data', 'train_data.edgelist'))
     data_util.write_pickle(missing.tolist(), path.join(run_dir, 'data', 'missing.bin'))
@@ -60,8 +62,8 @@ def run(args):
     # generates embeddings
     print(f'== TRAINING {args.model_type} MODEL  ==')
     model = train_model(train_data, args.model_type,
-                        args.embed_dim)
-
+                        args.embed_dim, run_dir)
+    return
     # classify
     # fit classifier and test model
     print(f'== TESTING MODEL  ==')
