@@ -202,7 +202,17 @@ def train_netra(A_nx, seed, outputdir, embed_dim):
 
 
     # generate walk for each node with given walk_length
-    walks = generate_walks(A_nx, args.numWalks_per_node, args.walk_length)
+    # check if minimum idx is greater than 0
+    # if minimum index is greater than 0, substract 1 from
+    # all indices so indexing can start at 0 and max stays at
+    # vocab_size-1
+    node_labels_idx = [int(n) for n in list(A_nx.nodes)]
+    # print(min(node_labels_idx), max(node_labels_idx))
+    if min(node_labels_idx) > 0:
+        idx_pad = 1
+    else:
+        idx_pad = 0
+    walks = generate_walks(A_nx, args.numWalks_per_node, args.walk_length, idx_pad=idx_pad)
     # save randomly generated walks to file ../tmp/train.txt
     np.savetxt(os.path.join(outputdir, 'tmp', 'train.txt'), walks, delimiter=" ", fmt="%s")
     
