@@ -188,8 +188,6 @@ def train_netra(A_nx, seed, outputdir, embed_dim):
     ###############################################################################
 
     print(os.getcwd())
-    print(A_nx)
-    print(A_nx.nodes)
     # # A_nx = nx.read_edgelist(args.data_path,nodetype = int, create_using=nx.DiGraph())  # if the graph is with sparse edge format, each line one edge, then use this
     if A_nx is None:
         A_nx = nx.read_adjlist(args.data_path, nodetype=int)                        # use this for reading adjacent list format graph

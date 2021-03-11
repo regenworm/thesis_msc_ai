@@ -94,7 +94,7 @@ def random_walk(A_nx, path_length, alpha=0, rand=random.Random(), start=None):
                 path.append(path[0])
         else:
             break
-    return [str(int(node)-1) for node in path]
+    return [str(int(node)) for node in path]
 
 
 def generate_walks(A_nx, walk_per_node, walk_length, alpha=0, rand=random.Random(0)):

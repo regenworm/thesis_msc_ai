@@ -52,6 +52,7 @@ def load_edge_list(fname, directed):
     else:
         G = nx.Graph()
     return nx.read_edgelist(fname, create_using=G)
+    # return nx.read_adjlist(fname, create_using=G)
 
 
 def write_edge_list(graph, fname):
