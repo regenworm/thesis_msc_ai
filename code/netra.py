@@ -16,8 +16,9 @@ import numpy as np
 
 
 def train_node_embeddings(data, seed, outputdir, emb_dim):
-    autoencoder, gan_gen, gan_disc, embeddings = train.train_netra(data, seed, outputdir, emb_dim)
-    return autoencoder, gan_gen, gan_disc, embeddings
+    embeddings = train.train_netra(data, seed, outputdir, emb_dim)
+    print(embeddings)
+    return embeddings
 
 
 class NetRAModel ():
@@ -51,27 +52,26 @@ class NetRAModel ():
         """
         # generate embeddings
         # node model
-        model, embeddings = train_node_embeddings(data, self.seed, outputdir, self.embed_dim)
-        self.nodes = model.wv
+        embeddings = train_node_embeddings(data, self.seed, outputdir, self.embed_dim)
+        self.nodes = embeddings
 
         # # edge model
         # edge_model = train_edge_embeddings(model, emb_name=self.emb_name)
         # self.ee_kv = edge_model.as_keyed_vectors()
         # self.edges = self.ee_kv.vectors
 
-    def get_embedding(self, edge, keys):
+    def get_embedding(self, edge):
         edge = str(edge)
         n1, n2 = du.edge_str2tuple(edge)
-        node1 = self.nodes[n1]
-        node2 = self.nodes[n2]
+        node1 = self.nodes[int(n1)]
+        node2 = self.nodes[int(n2)]
         return np.hstack((node1, node2))
 
     def get_feature_vectors(self, edges):
         feats = []
-        keys = self.ee_kv.vocab.keys()
         # for each edge in data, get feature vector
         for edge in edges:
-            feat_vec = self.get_embedding(edge, keys)
+            feat_vec = self.get_embedding(edge)
 
             if feat_vec is -1:
                 print('Embedding not found')
@@ -81,7 +81,7 @@ class NetRAModel ():
         feats = np.array(feats)
         return feats
 
-    def negative_sample(self, n_edges, data, keys):
+    def negative_sample(self, n_edges, data):
         feats = []
         edge_names = []
         # negative samples
@@ -89,7 +89,7 @@ class NetRAModel ():
         for i in iterations:
             edge, r_edge = du.sample_edge_idx(data.nodes)
 
-            feat_vec = self.get_embedding(edge, keys)
+            feat_vec = self.get_embedding(edge)
             if du.check_directed(data):
                 if (feat_vec is -1) or (edge in data.edges):
                     iterations.append(n_edges)
@@ -119,8 +119,7 @@ class NetRAModel ():
 
         # for each edge in data, get feature vector
         feats = self.get_feature_vectors(data.edges)
-        keys = self.nodes.vocab.keys()
-        neg_edge_names, neg_feats  = self.negative_sample(num_samples, data, keys)
+        neg_edge_names, neg_feats  = self.negative_sample(num_samples, data)
         feats = np.vstack((feats, neg_feats))
         self.clf, self.scaler = classify(feats, labels)
 
@@ -129,7 +128,6 @@ class NetRAModel ():
     def data_to_features(self, data):
         # get all feature vector names (edge1, edge2)
         feats = []
-        keys = self.ee_kv.vocab.keys()
 
         # for each edge in data, get feature vector
         for edge in data.edges:
@@ -138,7 +136,7 @@ class NetRAModel ():
             edge = str(edge)
 
             # if edge found save
-            feat_vec = self.get_embedding(edge, keys)
+            feat_vec = self.get_embedding(edge)
             if feat_vec is -1:
                 print('Embedding not found')
                 continue
